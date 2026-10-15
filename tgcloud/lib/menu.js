@@ -4,8 +4,8 @@
 
 import { api, db } from 'sdk';
 import { sql } from 'sdk/db';
-import { ADMIN_ID, CONTACT_USERNAME, PLANS } from './config.js';
-import { notify } from './channels.js';
+import { ADMIN_ID, CONTACT_USERNAME, PLANS, MINI_APP_URL } from './config.js';
+import { notify, isMember } from './channels.js';
 import { stamp } from './time.js';
 
 const DAY = 86400;
@@ -71,8 +71,20 @@ function pricesScreen() {
   };
 }
 
-export function sendWelcome(message) {
-  return api.sendMessage({ chat_id: message.chat.id, ...homeScreen(message.from?.first_name) });
+function withPanelButton(screen) {
+  screen.reply_markup.inline_keyboard.unshift([{ text: '📊 باز کردن پنل', web_app: { url: MINI_APP_URL } }]);
+  return screen;
+}
+
+// Home screen for a user: the owner and channel members also get the panel button.
+async function homeFor(user) {
+  const screen = homeScreen(user?.first_name);
+  return user && (user.id === ADMIN_ID || (await isMember(user.id))) ? withPanelButton(screen) : screen;
+}
+
+export function sendWelcome(message, { withPanel = false } = {}) {
+  const screen = homeScreen(message.from?.first_name);
+  return api.sendMessage({ chat_id: message.chat.id, ...(withPanel ? withPanelButton(screen) : screen) });
 }
 
 // Stops the button's spinner. Fails when the query is too old (e.g. a menu
@@ -90,7 +102,7 @@ export async function handleMenuCallback(query) {
   const data = query.data ?? '';
   const message = query.message;
 
-  const screen = data === 'menu:home' ? homeScreen(query.from.first_name)
+  const screen = data === 'menu:home' ? await homeFor(query.from)
     : data === 'menu:help' ? helpScreen()
       : data === 'menu:prices' ? pricesScreen()
         : null;

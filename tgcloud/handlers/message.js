@@ -66,11 +66,13 @@ export default async function (message, ctx) {
     }
   }
 
-  if ((text === '/panel' || text === '/start') && fromId && (fromId === ADMIN_ID || (await isMember(fromId)))) {
-    return sendPanel(fromId);
-  }
+  const hasPanel = Boolean(fromId) && (fromId === ADMIN_ID || (await isMember(fromId)));
+  if (text === '/panel' && hasPanel) return sendPanel(fromId);
 
-  if (/^\/start(\s|$)/.test(text) && message.chat.type === 'private') return sendWelcome(message);
+  // The menu for everyone; owner and members get the panel button on top.
+  if (/^\/start(\s|$)/.test(text) && message.chat.type === 'private') {
+    return sendWelcome(message, { withPanel: hasPanel });
+  }
 
   await api.sendMessage({
     chat_id: ADMIN_ID,
