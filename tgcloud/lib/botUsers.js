@@ -4,7 +4,7 @@
 import { db } from 'sdk';
 import { sql } from 'sdk/db';
 import { ADMIN_ID } from './config.js';
-import { pageParams, searchCondition, whereOf } from './dashboard.js';
+import { pageParams, searchCondition, whereOf, orderBy } from './dashboard.js';
 
 // Records a /start: a new row the first time, then refreshes the name and
 // bumps the counter. Never throws — tracking must not break /start.
@@ -68,7 +68,13 @@ export async function listBotUsers(input = {}) {
            (SELECT count(*) FROM channel_members m WHERE m.user_id = u.user_id) AS channels,
            (SELECT coalesce(sum(stars), 0) FROM payments p WHERE p.user_id = u.user_id AND p.refunded_at IS NULL) AS stars
     FROM bot_users u ${where}
-    ORDER BY u.first_seen_at DESC, u.user_id DESC
+    ${orderBy(input, {
+      first: 'u.first_seen_at',
+      last: 'u.last_seen_at',
+      votes: 'u.vote_count',
+      starts: 'u.start_count',
+      name: 'lower(coalesce(u.username, u.first_name))',
+    }, 'first', 'u.user_id DESC')}
     LIMIT ${p.size} OFFSET ${p.offset}`);
   const sums = await db.get(sql`
     SELECT count(*) AS users,

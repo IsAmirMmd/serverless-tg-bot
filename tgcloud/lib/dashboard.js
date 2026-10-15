@@ -33,6 +33,17 @@ export function searchCondition(q, { names, ids }) {
   return sql`(${parts.reduce((a, b) => sql`${a} OR ${b}`)})`;
 }
 
+// ORDER BY from the client's { sort, dir }. `columns` maps each allowed sort
+// key to a SQL expression written here — the client's value is only ever a
+// lookup key, never SQL. Empty values sort last either way; `tiebreak` keeps
+// pages stable. → sql`ORDER BY …`
+export function orderBy(input, columns, fallback, tiebreak) {
+  const key = Object.prototype.hasOwnProperty.call(columns, input?.sort ?? '') ? input.sort : fallback;
+  const dir = input?.dir === 'asc' ? sql.raw('ASC') : sql.raw('DESC');
+  const expr = sql.raw(columns[key]);
+  return sql`ORDER BY (${expr}) IS NULL, ${expr} ${dir}, ${sql.raw(tiebreak)}`;
+}
+
 export const whereOf = (conds) => {
   const list = conds.filter(Boolean);
   return list.length ? sql`WHERE ${list.reduce((a, b) => sql`${a} AND ${b}`)}` : sql``;
@@ -60,6 +71,30 @@ async function pageResult(rows, total, { page, size }) {
   return { rows: await withLinks(rows), page, size, total, pages: Math.max(1, Math.ceil(total / size)) };
 }
 
+// Sort keys the panel may ask for (src/views.jsx lists the same keys).
+const LIKES_SORT = {
+  date: 'coalesce(updated_at, created_at)',
+  user: 'lower(user_name)',
+  music: 'lower(music_name)',
+  vote: 'liked',
+};
+const USERS_SORT = {
+  votes: 'total_votes',
+  likes: 'total_liked',
+  dislikes: 'total_disliked',
+  last: 'last_vote_at',
+  name: 'lower(user_name)',
+};
+const MUSICS_SORT = {
+  likes: 'total_likes',
+  dislikes: 'total_dislikes',
+  votes: 'total_likes + total_dislikes',
+  ratio: 'CAST(total_likes AS REAL) / (total_likes + total_dislikes)',
+  post: 'music_id',
+  last: 'last_vote_at',
+  name: 'lower(music_name)',
+};
+
 // Totals for the stat tiles.
 export async function summary(scope) {
   const row = await db.get(sql`
@@ -84,7 +119,7 @@ export async function listLikes(scope, input = {}) {
   const rows = await db.all(sql`
     SELECT id, user_id, user_name, music_id, music_name, liked, channel_id, created_at, updated_at
     FROM likes ${where}
-    ORDER BY coalesce(updated_at, created_at) DESC, id DESC
+    ${orderBy(input, LIKES_SORT, 'date', 'id DESC')}
     LIMIT ${p.size} OFFSET ${p.offset}`);
   return pageResult(rows.map((r) => ({ ...r, liked: r.liked === 1 })), total, p);
 }
@@ -108,7 +143,7 @@ export async function userReport(scope, input = {}) {
   const total = Number((await db.get(sql`SELECT count(*) AS n FROM (${filtered})`))?.n ?? 0);
   const rows = await db.all(sql`
     SELECT * FROM (${filtered})
-    ORDER BY total_votes DESC, user_id
+    ${orderBy(input, USERS_SORT, 'votes', 'user_id')}
     LIMIT ${p.size} OFFSET ${p.offset}`);
   return pageResult(rows, total, p);
 }
@@ -131,7 +166,7 @@ export async function musicReport(scope, input = {}) {
   const total = Number((await db.get(sql`SELECT count(*) AS n FROM (${filtered})`))?.n ?? 0);
   const rows = await db.all(sql`
     SELECT * FROM (${filtered})
-    ORDER BY total_likes DESC, total_dislikes ASC, music_id DESC
+    ${orderBy(input, MUSICS_SORT, 'likes', 'music_id DESC')}
     LIMIT ${p.size} OFFSET ${p.offset}`);
   return pageResult(rows, total, p);
 }

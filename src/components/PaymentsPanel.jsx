@@ -8,6 +8,13 @@ import { alertDialog, confirmDialog } from '../lib/telegram.js';
 import DataTable from './DataTable.jsx';
 import Pagination from './Pagination.jsx';
 import { UserCell } from './cells.jsx';
+import SortControl from './SortControl.jsx';
+
+const SORTS = [
+  { id: 'date', label: 'تاریخ خرید', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+  { id: 'stars', label: 'مبلغ', desc: 'بیشترین', asc: 'کمترین' },
+  { id: 'end', label: 'پایان دوره', desc: 'دیرترین', asc: 'زودترین' },
+];
 
 const PLAN_LABEL = { m1: 'یک‌ماهه', m3: 'سه‌ماهه', unlimited: '🎁 نامحدود' };
 const planLabel = (r) => (r.plan === 'gift' ? `🎁 هدیه ${fa(r.days)} روزه` : PLAN_LABEL[r.plan] ?? `${fa(r.months)} ماهه`);
@@ -50,11 +57,14 @@ export default function PaymentsPanel({ reloadKey }) {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [order, setOrder] = useState({ sort: 'date', dir: 'desc' });
   const [busy, setBusy] = useState(false);
   const q = useDebounced(search.trim());
-  useEffect(() => setPage(1), [q, size, kind]);
+  useEffect(() => setPage(1), [q, size, kind, order]);
 
-  const { data, loading, error } = useEndpoint('ownerPayments', { page, size, q, kind, reloadKey, refreshKey });
+  const { data, loading, error } = useEndpoint('ownerPayments', {
+    page, size, q, kind, sort: order.sort, dir: order.dir, reloadKey, refreshKey,
+  });
   const s = data?.summary;
 
   const refund = async (r) => {
@@ -110,6 +120,7 @@ export default function PaymentsPanel({ reloadKey }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <SortControl options={SORTS} sort={order.sort} dir={order.dir} onChange={(sort, dir) => setOrder({ sort, dir })} />
         <div className="mz-row">
           {KINDS.map((k) => (
             <button key={k.id} type="button" className="mz-chip" aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>

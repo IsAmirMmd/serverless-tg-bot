@@ -10,6 +10,7 @@ import OwnerPanel from './components/OwnerPanel.jsx';
 import PaymentsPanel from './components/PaymentsPanel.jsx';
 import BotUsersPanel from './components/BotUsersPanel.jsx';
 import SubscriptionBar from './components/SubscriptionBar.jsx';
+import SortControl from './components/SortControl.jsx';
 
 const OWNER_TAB = 'manage';
 const PAYMENTS_TAB = 'payments';
@@ -47,12 +48,15 @@ function TableView({ tab, channelId, showChannel, reloadKey }) {
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
+  const [order, setOrder] = useState({ sort: view.sorts[0].id, dir: 'desc' });
   const q = useDebounced(search.trim());
 
-  useEffect(() => setPage(1), [q, filter, size, channelId]);
+  useEffect(() => setPage(1), [q, filter, size, channelId, order]);
 
   // reloadKey is part of the input, so pressing ↻ refetches.
-  const { data, error, loading, reload } = useEndpoint(view.endpoint, { channelId, page, size, q, filter, reloadKey });
+  const { data, error, loading, reload } = useEndpoint(view.endpoint, {
+    channelId, page, size, q, filter, sort: order.sort, dir: order.dir, reloadKey,
+  });
   const columns = useMemo(
     () => (showChannel ? [CHANNEL_COLUMN, ...view.columns] : view.columns),
     [showChannel, view],
@@ -73,6 +77,12 @@ function TableView({ tab, channelId, showChannel, reloadKey }) {
           placeholder={view.search}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+        />
+        <SortControl
+          options={view.sorts}
+          sort={order.sort}
+          dir={order.dir}
+          onChange={(sort, dir) => setOrder({ sort, dir })}
         />
         {view.filters && (
           <div className="mz-row">

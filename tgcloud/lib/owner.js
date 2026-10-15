@@ -3,7 +3,7 @@
 
 import { db, EndpointError } from 'sdk';
 import { sql } from 'sdk/db';
-import { pageParams, searchCondition, whereOf } from './dashboard.js';
+import { pageParams, searchCondition, whereOf, orderBy } from './dashboard.js';
 import { getChannel, postBase, inviteLink } from './channels.js';
 
 const pages = (total, size) => Math.max(1, Math.ceil(total / size));
@@ -72,7 +72,7 @@ export async function listPayments(input = {}) {
            p.refunded_at IS NULL AND p.period_end > unixepoch() AS active
     FROM payments p LEFT JOIN channels c ON c.chat_id = p.channel_id
     ${where}
-    ORDER BY p.created_at DESC, p.id DESC
+    ${orderBy(input, { date: 'p.created_at', stars: 'p.stars', end: 'p.period_end' }, 'date', 'p.id DESC')}
     LIMIT ${p.size} OFFSET ${p.offset}`);
   // Totals leave refunded payments out; "active" = paid channels still running.
   const sums = await db.get(sql`

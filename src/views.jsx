@@ -13,6 +13,12 @@ export const VIEWS = {
     endpoint: 'adminLikes',
     search: 'جستجوی کاربر، آهنگ یا شناسه…',
     filters: true,
+    sorts: [
+      { id: 'date', label: 'تاریخ', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+      { id: 'vote', label: 'نوع رأی', desc: 'لایک‌ها اول', asc: 'دیس‌لایک‌ها اول' },
+      { id: 'music', label: 'نام آهنگ', desc: 'ی تا الف', asc: 'الف تا ی' },
+      { id: 'user', label: 'نام کاربر', desc: 'ی تا الف', asc: 'الف تا ی' },
+    ],
     rowKey: (r) => r.id,
     columns: [
       { key: 'id', title: '#', className: 'mz-cell-num', hideOnMobile: true, render: (r) => faDigits(r.id) },
@@ -26,6 +32,13 @@ export const VIEWS = {
     label: 'گزارش کاربران',
     endpoint: 'adminUserReport',
     search: 'جستجوی نام کاربری یا شناسه…',
+    sorts: [
+      { id: 'votes', label: 'تعداد رأی', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'likes', label: 'تعداد لایک', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'dislikes', label: 'تعداد دیس‌لایک', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'last', label: 'آخرین رأی', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+      { id: 'name', label: 'نام کاربر', desc: 'ی تا الف', asc: 'الف تا ی' },
+    ],
     rowKey: (r) => `${r.channel_id}:${r.user_id}`,
     columns: [
       { key: 'user', title: 'کاربر', className: 'mz-cell-nowrap', render: (r) => <UserCell name={r.user_name} id={r.user_id} /> },
@@ -41,6 +54,15 @@ export const VIEWS = {
     label: 'گزارش آهنگ‌ها',
     endpoint: 'adminMusicReport',
     search: 'جستجوی نام آهنگ یا شناسه…',
+    sorts: [
+      { id: 'likes', label: 'تعداد لایک', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'dislikes', label: 'تعداد دیس‌لایک', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'votes', label: 'کل رأی‌ها', desc: 'بیشترین', asc: 'کمترین' },
+      { id: 'ratio', label: 'درصد لایک', desc: 'محبوب‌ترین', asc: 'کم‌طرفدارترین' },
+      { id: 'post', label: 'تاریخ پست', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+      { id: 'last', label: 'آخرین رأی', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+      { id: 'name', label: 'نام آهنگ', desc: 'ی تا الف', asc: 'الف تا ی' },
+    ],
     rowKey: (r) => `${r.channel_id}:${r.music_id}`,
     columns: [
       { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} url={r.music_url} /> },

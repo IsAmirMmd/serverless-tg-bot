@@ -48,6 +48,10 @@
 
 .page-size { width: auto; }
 
+.sort-control { display: flex; gap: var(--mz-s2); flex: 0 1 auto; }
+.sort-control .mz-select { width: auto; min-width: 150px; }
+.sort-control__dir { white-space: nowrap; min-width: 0; }
+
 /* ---------- phones ---------- */
 @media (max-width: 640px) {
   #root > .mz-container {
@@ -61,6 +65,9 @@
   /* Search on its own line; filter chips scroll sideways instead of wrapping. */
   .toolbar { flex-direction: column; }
   .toolbar .mz-input { flex: none; }
+  .sort-control { width: 100%; }
+  .sort-control .mz-select { flex: 1 1 auto; min-width: 0; }
+  .sort-control__dir { flex: 0 0 auto; }
   .toolbar > .mz-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
   .toolbar > .mz-row::-webkit-scrollbar { display: none; }
   .mz-chip { flex: none; }

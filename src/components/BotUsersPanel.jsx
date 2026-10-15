@@ -5,6 +5,15 @@ import { fa, faDate } from '../lib/format.js';
 import DataTable from './DataTable.jsx';
 import Pagination from './Pagination.jsx';
 import { UserCell } from './cells.jsx';
+import SortControl from './SortControl.jsx';
+
+const SORTS = [
+  { id: 'first', label: 'تاریخ عضویت', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+  { id: 'last', label: 'آخرین فعالیت', desc: 'جدیدترین', asc: 'قدیمی‌ترین' },
+  { id: 'votes', label: 'تعداد رأی', desc: 'بیشترین', asc: 'کمترین' },
+  { id: 'starts', label: 'تعداد استارت', desc: 'بیشترین', asc: 'کمترین' },
+  { id: 'name', label: 'نام', desc: 'ی تا الف', asc: 'الف تا ی' },
+];
 
 const TILES = [
   ['users', 'کل اعضا', 'mz-stat--green'],
@@ -54,12 +63,15 @@ function useDebounced(value, ms = 350) {
 export default function BotUsersPanel({ reloadKey }) {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
+  const [order, setOrder] = useState({ sort: 'first', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
   const q = useDebounced(search.trim());
-  useEffect(() => setPage(1), [q, size, kind]);
+  useEffect(() => setPage(1), [q, size, kind, order]);
 
-  const { data, loading, error } = useEndpoint('ownerBotUsers', { page, size, q, kind, reloadKey });
+  const { data, loading, error } = useEndpoint('ownerBotUsers', {
+    page, size, q, kind, sort: order.sort, dir: order.dir, reloadKey,
+  });
   const s = data?.summary;
 
   return (
@@ -82,6 +94,7 @@ export default function BotUsersPanel({ reloadKey }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <SortControl options={SORTS} sort={order.sort} dir={order.dir} onChange={(sort, dir) => setOrder({ sort, dir })} />
         <div className="mz-row">
           {KINDS.map((k) => (
             <button key={k.id} type="button" className="mz-chip" aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>
