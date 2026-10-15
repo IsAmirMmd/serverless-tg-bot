@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <!-- Bot profile picture, monogram version: the vinyl record of bot-avatar.svg
+       with "LT" (LikeTune) on the label and a small heart as its dot.
+       Font: Vazirmatn Black (src/fonts/Vazirmatn-Variable.woff2) — the renderer
+       must load it; to use the SVG elsewhere, convert the text to outlines. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0" stop-color="#2a2b2e"/>
+      <stop offset="1" stop-color="#111213"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fa604e" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#fa604e" stop-opacity="0"/>
+    </radialGradient>
+    <path id="heart" d="M50 88 C20 65 0 46 0 26 C0 10 12 0 27 0 C38 0 46 6 50 15 C54 6 62 0 73 0 C88 0 100 10 100 26 C100 46 80 65 50 88 Z"/>
+  </defs>
+
+  <rect width="640" height="640" fill="url(#bg)"/>
+  <circle cx="320" cy="320" r="300" fill="url(#glow)"/>
+
+  <!-- hard offset "print" shadow -->
+  <circle cx="320" cy="334" r="234" fill="#fa604e"/>
+
+  <!-- record -->
+  <circle cx="320" cy="314" r="234" fill="#0d0e0f" stroke="#f4efe7" stroke-width="16"/>
+  <g fill="none" stroke="#33342f" stroke-width="4">
+    <circle cx="320" cy="314" r="200"/>
+    <circle cx="320" cy="314" r="174"/>
+  </g>
+  <path d="M168 222 A176 176 0 0 1 292 140" fill="none" stroke="#f4efe7" stroke-opacity=".32" stroke-width="12" stroke-linecap="round"/>
+  <path d="M474 404 A176 176 0 0 1 404 470" fill="none" stroke="#f4efe7" stroke-opacity=".16" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- label: monogram with a hard ink shadow, heart below -->
+  <circle cx="320" cy="314" r="140" fill="#fa604e" stroke="#f4efe7" stroke-width="12"/>
+  <g font-family="Vazirmatn, 'Mirza Vazir', sans-serif" font-weight="900" font-size="150" text-anchor="middle" letter-spacing="-6">
+    <text x="324" y="340" fill="#17181a">LT</text>
+    <text x="320" y="334" fill="#f4efe7">LT</text>
+  </g>
+  <use href="#heart" transform="translate(299 360) scale(.42)" fill="#f4efe7"/>
+</svg>
