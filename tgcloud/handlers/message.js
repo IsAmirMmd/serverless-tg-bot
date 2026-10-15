@@ -5,6 +5,7 @@
 import { api } from 'sdk';
 import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
 import { sendWelcome, recordPayment, sendPaySupport } from '../lib/menu.js';
+import { trackStart } from '../lib/botUsers.js';
 import {
   sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel, setCommands,
 } from '../lib/admin.js';
@@ -48,6 +49,7 @@ export default async function (message, ctx) {
   const fromId = message.from?.id;
 
   if (message.successful_payment) return recordPayment(message);
+  if (/^\/start(\s|$)/.test(text) && message.chat.type === 'private') await trackStart(message);
   if (text === '/paysupport') return sendPaySupport(message);
 
   const invite = /^\/start\s+inv_([A-Za-z0-9]+)$/.exec(text);

@@ -8,10 +8,12 @@ import DataTable from './components/DataTable.jsx';
 import Pagination from './components/Pagination.jsx';
 import OwnerPanel from './components/OwnerPanel.jsx';
 import PaymentsPanel from './components/PaymentsPanel.jsx';
+import BotUsersPanel from './components/BotUsersPanel.jsx';
 
 const OWNER_TAB = 'manage';
 const PAYMENTS_TAB = 'payments';
-const OWNER_TABS = [OWNER_TAB, PAYMENTS_TAB];
+const BOT_USERS_TAB = 'botUsers';
+const OWNER_TABS = [OWNER_TAB, PAYMENTS_TAB, BOT_USERS_TAB];
 
 function errorText(e) {
   return e.type === 'ENDPOINT_ERROR' ? e.message : `خطا در دریافت اطلاعات (${e.type ?? e.message})`;
@@ -161,6 +163,7 @@ export default function App() {
     ...(isOwner ? [
       { id: OWNER_TAB, label: 'کاربران و کانال‌ها' },
       { id: PAYMENTS_TAB, label: 'پرداخت‌ها' },
+      { id: BOT_USERS_TAB, label: 'اعضای ربات' },
     ] : []),
   ], [isOwner]);
 
@@ -203,6 +206,7 @@ export default function App() {
 
       {tab === OWNER_TAB && <OwnerPanel onChannelsChanged={() => setMeKey((k) => k + 1)} />}
       {tab === PAYMENTS_TAB && <PaymentsPanel reloadKey={reloadKey} />}
+      {tab === BOT_USERS_TAB && <BotUsersPanel reloadKey={reloadKey} />}
       {/* key: a new tab starts with a fresh search, filter and page */}
       {!OWNER_TABS.includes(tab) && (
         <TableView key={tab} tab={tab} channelId={channelId} showChannel={showChannel} reloadKey={reloadKey} />

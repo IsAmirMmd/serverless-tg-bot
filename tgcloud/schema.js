@@ -49,6 +49,21 @@ export const channel_members = table('channel_members', {
   channelUser: uniqueIndex('uidx_members_channel_user').on(t.channel_id, t.user_id),
 }));
 
+// Everyone who has started the bot (one row per Telegram user), kept up to
+// date on every /start.
+export const bot_users = table('bot_users', {
+  user_id:       integer('user_id').primaryKey(),
+  username:      text('username'),
+  first_name:    text('first_name'),
+  last_name:     text('last_name'),
+  language_code: text('language_code'),
+  is_premium:    boolean('is_premium').notNull().default(false),
+  start_param:   text('start_param'),                     // payload of the first /start (e.g. inv_…)
+  start_count:   integer('start_count').notNull().default(1),
+  first_seen_at: integer('first_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+  last_seen_at:  integer('last_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+});
+
 // Subscriptions bought with Telegram Stars (one row per payment). A user's
 // subscription runs until their latest period_end.
 export const payments = table('payments', {
