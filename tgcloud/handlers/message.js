@@ -1,9 +1,9 @@
 // handlers/message.js — runs on each `message` update (private chats, groups).
-// Invite links (/start inv_<code>), /panel for channel members, the owner's
-// admin commands; anything else gets the same notice the n8n workflow sent.
+// Payments, /start (menu, invite links), /panel for channel members and the
+// owner's admin commands; anything else is ignored.
 
 import { api } from 'sdk';
-import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
+import { ADMIN_ID } from '../lib/config.js';
 import { sendWelcome, recordPayment, sendPaySupport } from '../lib/menu.js';
 import { trackStart } from '../lib/botUsers.js';
 import {
@@ -77,8 +77,6 @@ export default async function (message, ctx) {
     return sendWelcome(message, { withPanel: hasPanel });
   }
 
-  await api.sendMessage({
-    chat_id: ADMIN_ID,
-    text: `Please send me an audio or music file, and I'll find the lyrics for you! 🎵\n\n${SIGNATURE}`,
-  });
+  // Anything else (unknown commands, admin commands from other users, free
+  // text) gets no reply, and the owner is not notified.
 }
