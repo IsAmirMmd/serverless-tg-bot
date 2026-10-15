@@ -1,5 +1,5 @@
-# Replaces the n8n "Every 8 Hours" Schedule Trigger: Telegram Serverless has no
-# scheduler, so GitHub Actions runs the /backup command in the cloud.
+# Backup every 8 hours: Telegram Serverless has no scheduler, so GitHub
+# Actions runs the /backup command in the cloud.
 # Needs the repository secret TGCLOUD_TOKEN (BotFather → your bot → Serverless →
 # CLI Access → Access token).
 name: Likes backup

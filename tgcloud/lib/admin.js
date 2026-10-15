@@ -127,13 +127,13 @@ export async function addFakeLikes({ liked, link, musicId, count, channelId }) {
 }
 
 const toInt = (v) => (/^-?\d+$/.test(String(v).trim()) ? Number(v) : null);
-// Backups written by n8n carry channel ids like "-1.0018E+12" (precision lost),
-// "0" or "" — keep only whole ids. The next vote on a post records its real id.
+// Backups edited in a spreadsheet can carry channel ids like "-1.0018E+12"
+// (precision lost), "0" or "" — keep only whole ids.
 const toChannelId = (v) => (/^-?\d+$/.test(String(v).trim()) && Number(v) !== 0 ? String(v).trim() : null);
 const toBool = (v) => (/^(true|1)$/i.test(String(v).trim()) ? true : /^(false|0)$/i.test(String(v).trim()) ? false : null);
 
-// A CSV document with caption /import — e.g. a "Likes_Backup" file the n8n
-// workflow sent — loaded into the likes table. Votes already in the table win
+// A CSV document with caption /import — e.g. a "Likes_Backup" file from
+// /backup — loaded into the likes table. Votes already in the table win
 // over the file, so votes cast since the backup are kept.
 // Rows without a channel id get `channelId` (from "/import <channel_id>"), or
 // the only active channel when there is just one.

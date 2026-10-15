@@ -32,7 +32,7 @@ export default async function (post, ctx) {
     try {
       meta = await cleanMetadata(audio);
     } catch (e) {
-      // As in the n8n workflow: tell the admin, and still remove the original post.
+      // Tell the admin, and still remove the original post.
       console.error(e);
       await api.sendMessage({ chat_id: ADMIN_ID, text: `Error on LLM\n\n${e.message}` });
       await api.deleteMessage({ chat_id: post.chat.id, message_id: post.message_id });

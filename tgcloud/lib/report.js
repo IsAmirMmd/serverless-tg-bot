@@ -1,5 +1,4 @@
-// Report rows built from the likes table. Ports of the n8n Code nodes
-// "Build Report Data" and "Build Music Report Data".
+// Report rows built from the likes table: one row per user and one per track.
 
 // The table-bound query builder returns booleans; accept 0/1 too.
 export const isLiked = (v) => v === true || v === 1;

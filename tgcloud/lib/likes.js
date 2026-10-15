@@ -5,9 +5,8 @@ import { likes } from '../schema.js';
 const COLUMNS = ['user_id', 'liked', 'music_id', 'user_name', 'channel_id', 'music_name'];
 const CHUNK = 50;
 
-// Saves votes. A row for an existing (music_id, user_id) replaces that user's
-// vote — the n8n "Upsert row(s)" node, matched on user_id + music_id — or,
-// with keepExisting, is skipped.
+// Saves votes. A row for an existing (channel_id, music_id, user_id) replaces
+// that user's vote or, with keepExisting, is skipped.
 export async function upsertLikes(rows, { keepExisting = false } = {}) {
   const onConflict = keepExisting
     ? 'DO NOTHING'

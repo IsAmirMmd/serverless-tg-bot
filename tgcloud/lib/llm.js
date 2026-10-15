@@ -6,7 +6,7 @@ export const API_KEY_SETTING = 'openrouter_api_key';
 
 const SYSTEM = 'Output only a JSON object, no other text: {"title":"...","performer":"...","emoji":"..."}';
 
-// The prompt of the n8n "Basic LLM Chain" node.
+// The prompt that turns raw audio tags into a clean title, performer and emoji.
 const prompt = (audio) => `Clean music metadata.
 
 Input:
@@ -59,7 +59,7 @@ export async function cleanMetadata(audio) {
   const meta = parseMeta(answer);
   if (meta) return meta;
 
-  // Like n8n's auto-fixing output parser: ask the model once to repair its answer.
+  // Not valid JSON: ask the model once to repair its answer.
   const fixed = parseMeta(await complete([
     ...messages,
     { role: 'assistant', content: answer },

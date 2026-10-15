@@ -2,10 +2,9 @@ import { table, integer, text, boolean, uniqueIndex, sql } from 'sdk/db';
 
 // Database tables, as named exports. `npx tgcloud push` registers the schema;
 // `npx tgcloud migrate` applies the changes to the database.
-// Keys match the column names, so rows read back with the same field names
-// the n8n workflow used.
+// Keys match the column names, so query results use the same field names.
 
-// One vote per (channel, music, user) — the n8n "Likes" data table. `music_id`
+// One vote per (channel, music, user). `music_id`
 // is the message_id of the post, unique only within its channel, so
 // `channel_id` is always set.
 export const likes = table('likes', {
