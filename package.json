@@ -13,6 +13,7 @@
     "deploy": "tgcloud push",
     "migrate": "tgcloud migrate",
     "run": "tgcloud run",
+    "sql": "node scripts/sql.mjs",
     "pull": "tgcloud pull",
     "webhook": "tgcloud webhook"
   },
