@@ -1,0 +1,21 @@
+/* App-specific layout on top of the Mirza design system (styles/mirza.css). */
+
+.app-header { justify-content: space-between; align-items: flex-start; }
+.app-hello { margin: 0; font-size: var(--mz-fs-sm); }
+
+.toolbar { align-items: stretch; }
+.toolbar .mz-input { flex: 1 1 220px; }
+
+.cell-user { display: flex; flex-direction: column; line-height: 1.5; }
+.cell-user small { color: var(--mz-muted); font-size: var(--mz-fs-xs); }
+.cell-ids { font-size: var(--mz-fs-sm); line-height: 1.7; color: var(--mz-muted); }
+
+.mz-skeleton-row td { padding-block: 16px; }
+.stat-skeleton { height: 28px; margin-block: 6px; }
+.alert-row { justify-content: space-between; }
+
+@media (max-width: 520px) {
+  .mz-container { padding: var(--mz-s3); }
+  .mz-stat__value { font-size: var(--mz-fs-lg); }
+  .mz-pagination { justify-content: center; }
+}

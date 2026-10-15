@@ -19,14 +19,19 @@ Source: https://core.telegram.org/bots/serverless#mini-app-front-end. Re-check i
 ## Step 1: Inspect the project
 
 - Is there a `tgcloud/` folder? If not, set up the bot first (the `tgcloud-bot` skill, or `npm create @tgcloud/bot .`). Read the project's `AGENTS.md`, since it holds the module rules.
-- Is there a front-end? Look at `package.json`, `vite.config.*` and `index.html`. If there's none, create one at the **project root**, next to `tgcloud/` (e.g. `npm create vite@latest . -- --template react`), keeping the existing files. Create the front-end first, then the tgcloud parts; the creator never overwrites existing files.
+- Is there a front-end? Look at `package.json`, `vite.config.*` and `index.html`. If there's none, create one at the **project root**, next to `tgcloud/`, keeping the existing files.
 - Check `tgcloud.jsonc` → `"static"`.
+
+**The front-end is always React (Vite + `@vitejs/plugin-react`).** The user requires it, so never write a vanilla-JS UI. Style it with the `mirza-design-system` skill. Write endpoints with the `tgcloud-endpoints` skill.
+
+Reference implementation in this repo: `index.html`, `vite.config.js`, `src/main.jsx`, `src/App.jsx`, `src/views.jsx`, `src/components/*`, `src/lib/*`, with the endpoints in `tgcloud/endpoints/admin*.js`.
 
 ## Step 2: Wire the front-end
 
+0. React setup in an existing project: `npm i react react-dom` and `npm i -D vite @vitejs/plugin-react`. Then add `vite.config.js` with `plugins: [react()]`, `index.html` with `<div id="root">` and `<script type="module" src="/src/main.jsx">`, and the scripts `"dev": "vite"`, `"build": "vite build"`, `"update": "vite build && tgcloud push && tgcloud migrate --yes"`. Add `dist/` to `.gitignore`.
 1. Add the Telegram script to `index.html` `<head>`, before the app bundle:
    `<script src="https://telegram.org/js/telegram-web-app.js"></script>`
-2. Copy [assets/serverless.js](assets/serverless.js) to `src/lib/serverless.js`. It turns `Serverless.call` into a promise: `await callEndpoint('getProfile', { lang: 'en' })`.
+2. Copy [assets/serverless.js](assets/serverless.js) to `src/lib/serverless.js` and [assets/useEndpoint.js](assets/useEndpoint.js) to `src/lib/useEndpoint.js`. The first turns `Serverless.call` into a promise (`await callEndpoint('getProfile', { lang: 'en' })`). The second is a React hook: `const { data, error, loading, reload } = useEndpoint('adminLikes', { page, size })`. It refetches when the input changes and drops stale responses.
 3. On startup: `Telegram.WebApp.ready(); Telegram.WebApp.expand();`. Use `Telegram.WebApp.themeParams` / CSS vars (`var(--tg-theme-bg-color)`) so the app matches the Telegram theme.
 4. `initDataUnsafe` is for display only (name, photo). Anything that needs trust goes through an endpoint, which receives **verified** init data.
 5. Keep the bundler's `base` at `/`. Never put files under `/api/` in the build output. Don't set `X-Frame-Options` or a restrictive `frame-ancestors`, because Telegram Web loads the app in an iframe.
@@ -85,11 +90,13 @@ More recipes (sending a message from the app, upserting the user, pagination, er
 
 ## Step 6: Build and deploy
 
-`push` uploads the build folder **as it is on disk** and never builds. Always build first. Make `npm run deploy` do both:
+`push` uploads the build folder **as it is on disk** and never builds. Always build first. In this repo, one command does everything:
 
-```json
-"scripts": { "build": "vite build", "deploy": "npm run build && tgcloud push" }
 ```
+npm run update     # vite build → tgcloud push → tgcloud migrate --yes
+```
+
+`migrate --yes` applies every safe and warning schema change without asking. Changes that need manual handling are never applied automatically. Use `npx tgcloud migrate --dry-run` first if you aren't sure.
 
 - `npx tgcloud push`: modules + static files (only changed files are uploaded).
 - `npx tgcloud push dist/`: static files only. `npx tgcloud push tgcloud/endpoints/x.js`: that module only (leaves the site untouched).

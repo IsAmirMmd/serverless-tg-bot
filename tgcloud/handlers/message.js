@@ -4,13 +4,14 @@
 import { api } from 'sdk';
 import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
 import {
-  sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey,
+  sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel,
 } from '../lib/admin.js';
 
 // The admin command in `text`, started; or null when it is not one.
 function adminCommand(message, text) {
   if (text === '/report') return sendReports();
   if (text === '/backup') return sendBackup();
+  if (text === '/panel') return sendPanel();
   // The file itself, or a forwarded file this message replies to.
   if (text === '/import') return importLikes(message.document ?? message.reply_to_message?.document);
   if (/^\/setkey(\s|$)/.test(text)) return setApiKey(message, text.slice('/setkey'.length).trim());

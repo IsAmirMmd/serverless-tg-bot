@@ -1,5 +1,5 @@
 import { api, InputFile } from 'sdk';
-import { ADMIN_ID, SIGNATURE, MAX_FAKE_LIKES } from './config.js';
+import { ADMIN_ID, SIGNATURE, MAX_FAKE_LIKES, MINI_APP_URL } from './config.js';
 import { allLikes, countAllLikes, findMusic, upsertLikes, refreshButtons } from './likes.js';
 import { buildUserReport, buildMusicReport } from './report.js';
 import { toXlsx, toCsv, parseCsv, utf8Encode, utf8Decode } from './files.js';
@@ -34,6 +34,18 @@ export async function sendReports() {
     `Music_Likes_Report_${stamp(now, true)}.xlsx`, XLSX,
     `🎵 Likes by Music Report\n\nGenerated: ${stamp(now)}\n\n${SIGNATURE}`,
   );
+}
+
+// /panel — opens the admin Mini App. The menu button is set for the admin's
+// chat only, so other users never see it.
+export async function sendPanel() {
+  const web_app = { url: MINI_APP_URL };
+  await api.setChatMenuButton({ chat_id: ADMIN_ID, menu_button: { type: 'web_app', text: 'پنل', web_app } });
+  await api.sendMessage({
+    chat_id: ADMIN_ID,
+    text: '📊 پنل لایک‌ها و گزارش‌ها',
+    reply_markup: { inline_keyboard: [[{ text: 'باز کردن پنل', web_app }]] },
+  });
 }
 
 // /backup — the whole likes table as CSV (run every 8 hours by GitHub Actions).

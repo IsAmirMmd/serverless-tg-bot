@@ -5,12 +5,15 @@
   "description": "Telegram bot running on Telegram Serverless (tgcloud)",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "update": "vite build && tgcloud push && tgcloud migrate --yes",
     "login": "tgcloud login",
     "status": "tgcloud status",
-    "deploy": "tgcloud push",
+    "deploy": "vite build && tgcloud push",
     "migrate": "tgcloud migrate",
     "run": "tgcloud run",
     "sql": "node scripts/sql.mjs",
@@ -22,6 +25,12 @@
     "url": "git+https://github.com/IsAmirMmd/serverless-tg-bot.git"
   },
   "devDependencies": {
-    "@tgcloud/cli": "^0.2.0"
+    "@tgcloud/cli": "^0.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   }
 }

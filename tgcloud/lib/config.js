@@ -7,6 +7,9 @@ export const ADMIN_ID = 199419831;
 
 export const SIGNATURE = '@isAmirMmd';
 
+// The admin Mini App (index.html + src/), deployed by `npm run update`.
+export const MINI_APP_URL = 'https://app8735554979.tgcloud.ai/';
+
 // true: an LLM (OpenRouter) cleans up the title/performer of new posts and
 // picks the emoji — needs the API key (/setkey). false: rule-based cleanup
 // (lib/metadata.js), no AI.
