@@ -1,23 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { tg, useTelegramTheme } from './lib/telegram.js';
 import { useEndpoint } from './lib/useEndpoint.js';
-import { VIEWS, FILTERS } from './views.jsx';
+import { VIEWS, FILTERS, CHANNEL_COLUMN } from './views.jsx';
 import StatTiles from './components/StatTiles.jsx';
 import Tabs from './components/Tabs.jsx';
 import DataTable from './components/DataTable.jsx';
 import Pagination from './components/Pagination.jsx';
+import OwnerPanel from './components/OwnerPanel.jsx';
 
-const TAB_ITEMS = Object.entries(VIEWS).map(([id, v]) => ({ id, label: v.label }));
+const OWNER_TAB = 'manage';
 
 function errorText(e) {
   return e.type === 'ENDPOINT_ERROR' ? e.message : `خطا در دریافت اطلاعات (${e.type ?? e.message})`;
 }
 
-function Denied({ text }) {
+function Notice({ icon, text }) {
   return (
     <main className="mz-container">
       <div className="mz-card mz-empty">
-        <p className="mz-title">⛔️</p>
+        <p className="mz-title">{icon}</p>
         <p className="mz-subtitle">{text}</p>
       </div>
     </main>
@@ -34,7 +35,7 @@ function useDebounced(value, ms = 350) {
   return v;
 }
 
-function TableView({ tab, reloadKey }) {
+function TableView({ tab, channelId, showChannel, reloadKey }) {
   const view = VIEWS[tab];
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -42,10 +43,14 @@ function TableView({ tab, reloadKey }) {
   const [size, setSize] = useState(20);
   const q = useDebounced(search.trim());
 
-  useEffect(() => setPage(1), [q, filter, size]);
+  useEffect(() => setPage(1), [q, filter, size, channelId]);
 
   // reloadKey is part of the input, so pressing ↻ refetches.
-  const { data, error, loading, reload } = useEndpoint(view.endpoint, { page, size, q, filter, reloadKey });
+  const { data, error, loading, reload } = useEndpoint(view.endpoint, { channelId, page, size, q, filter, reloadKey });
+  const columns = useMemo(
+    () => (showChannel ? [CHANNEL_COLUMN, ...view.columns] : view.columns),
+    [showChannel, view],
+  );
 
   const goTo = (p) => {
     setPage(p);
@@ -88,7 +93,7 @@ function TableView({ tab, reloadKey }) {
       )}
 
       <DataTable
-        columns={view.columns}
+        columns={columns}
         rows={data?.rows ?? []}
         meta={data}
         rowKey={view.rowKey}
@@ -109,42 +114,91 @@ function TableView({ tab, reloadKey }) {
   );
 }
 
+const STATUS_LABEL = { pending: 'در انتظار', paused: 'متوقف' };
+
+function ChannelPicker({ channels, value, onChange, allowAll }) {
+  if (channels.length < 2 && !allowAll) return null;
+  return (
+    <label className="field channel-picker">
+      <span className="field__label">کانال</span>
+      <select className="mz-select" value={value} onChange={(e) => onChange(e.target.value)}>
+        {allowAll && <option value="all">همه کانال‌ها</option>}
+        {channels.map((c) => (
+          <option key={c.chat_id} value={c.chat_id}>
+            {c.title ?? c.username ?? c.chat_id}{STATUS_LABEL[c.status] ? ` (${STATUS_LABEL[c.status]})` : ''}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function App() {
   useTelegramTheme();
+  const [meKey, setMeKey] = useState(0);
+  const me = useEndpoint('me', { meKey });
   const [tab, setTab] = useState('likes');
+  const [channelId, setChannelId] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const summary = useEndpoint('adminSummary', { reloadKey });
 
-  const e = summary.error;
-  if (e?.type === 'NOT_IN_TELEGRAM') return <Denied text="این صفحه را از داخل تلگرام باز کنید" />;
-  if (e?.code === 'FORBIDDEN') return <Denied text={e.message} />;
+  const isOwner = Boolean(me.data?.isOwner);
+  const channels = me.data?.channels ?? [];
+  const allowAll = isOwner || channels.length > 1;
 
-  const me = tg?.initDataUnsafe?.user;
+  // Default channel: everything for the owner, otherwise the first channel.
+  useEffect(() => {
+    if (!me.data || channelId) return;
+    setChannelId(allowAll ? 'all' : channels[0]?.chat_id ?? null);
+  }, [me.data, channelId, allowAll, channels]);
+
+  const summary = useEndpoint('adminSummary', { channelId: channelId ?? 'all', reloadKey });
+
+  const tabItems = useMemo(() => [
+    ...Object.entries(VIEWS).map(([id, v]) => ({ id, label: v.label })),
+    ...(isOwner ? [{ id: OWNER_TAB, label: 'کاربران و کانال‌ها' }] : []),
+  ], [isOwner]);
+
+  if (me.error?.type === 'NOT_IN_TELEGRAM') return <Notice icon="📱" text="این صفحه را از داخل تلگرام باز کنید" />;
+  if (me.error) return <Notice icon="⚠️" text={errorText(me.error)} />;
+  if (me.loading && !me.data) return <Notice icon="⏳" text="در حال بارگذاری…" />;
+  if (!isOwner && !channels.length) return <Notice icon="⛔️" text="دسترسی به هیچ کانالی برای شما فعال نشده است" />;
+  if (!channelId) return null;
+
+  const user = tg?.initDataUnsafe?.user;
+  const showChannel = channelId === 'all' && (isOwner ? channels.length > 1 : true);
 
   return (
     <main className="mz-container mz-stack">
       <header className="mz-row app-header">
         <div>
-          <h1 className="mz-title">پنل لایک‌ها</h1>
-          {me && <p className="mz-muted app-hello">سلام {me.first_name} 👋</p>}
+          <h1 className="mz-title">پنل آمار کانال</h1>
+          {user && <p className="mz-muted app-hello">سلام {user.first_name} 👋{isOwner ? ' · مالک' : ''}</p>}
         </div>
         <button
           type="button"
           className="mz-btn mz-btn--icon"
           aria-label="به‌روزرسانی"
           title="به‌روزرسانی"
-          onClick={() => setReloadKey((k) => k + 1)}
+          onClick={() => { setReloadKey((k) => k + 1); setMeKey((k) => k + 1); }}
         >
           ↻
         </button>
       </header>
 
-      {e && <div className="mz-alert">{errorText(e)}</div>}
-      <StatTiles data={summary.data} />
+      {tab !== OWNER_TAB && (
+        <>
+          <ChannelPicker channels={channels} value={channelId} onChange={setChannelId} allowAll={allowAll} />
+          {summary.error && <div className="mz-alert">{errorText(summary.error)}</div>}
+          <StatTiles data={summary.loading ? null : summary.data} />
+        </>
+      )}
 
-      <Tabs items={TAB_ITEMS} value={tab} onChange={setTab} />
-      {/* key: a new tab starts with a fresh search, filter and page */}
-      <TableView key={tab} tab={tab} reloadKey={reloadKey} />
+      <Tabs items={tabItems} value={tab} onChange={setTab} />
+
+      {tab === OWNER_TAB
+        ? <OwnerPanel onChannelsChanged={() => setMeKey((k) => k + 1)} />
+        // key: a new tab starts with a fresh search, filter and page
+        : <TableView key={tab} tab={tab} channelId={channelId} showChannel={showChannel} reloadKey={reloadKey} />}
     </main>
   );
 }

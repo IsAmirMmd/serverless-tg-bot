@@ -17,3 +17,21 @@ export function useTelegramTheme() {
     return () => tg?.offEvent?.('themeChanged', apply);
   }, []);
 }
+
+// Telegram's native confirm dialog (window.confirm outside Telegram).
+export function confirmDialog(message) {
+  if (!tg?.showConfirm) return Promise.resolve(window.confirm(message));
+  return new Promise((resolve) => tg.showConfirm(message, resolve));
+}
+
+export function alertDialog(message) {
+  if (!tg?.showAlert) return Promise.resolve(window.alert(message));
+  return new Promise((resolve) => tg.showAlert(message, resolve));
+}
+
+// Opens Telegram's "share to chat" picker with a link.
+export function shareLink(url, text = '') {
+  const share = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+  if (tg?.openTelegramLink) tg.openTelegramLink(share);
+  else window.open(share, '_blank', 'noopener');
+}

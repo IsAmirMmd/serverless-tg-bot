@@ -1,5 +1,5 @@
 import { db, api } from 'sdk';
-import { eq, asc, sql } from 'sdk/db';
+import { asc, sql } from 'sdk/db';
 import { likes } from '../schema.js';
 
 const COLUMNS = ['user_id', 'liked', 'music_id', 'user_name', 'channel_id', 'music_name'];
@@ -29,7 +29,7 @@ export async function upsertLikes(rows, { keepExisting = false } = {}) {
     });
     await db.run(
       `INSERT INTO likes (${COLUMNS.join(', ')}) VALUES ${values.join(', ')}
-       ON CONFLICT (music_id, user_id) ${onConflict}`,
+       ON CONFLICT (channel_id, music_id, user_id) ${onConflict}`,
       params,
     );
   }
@@ -43,17 +43,18 @@ export async function allLikes() {
   return db.select().from(likes).orderBy(asc(likes.id)).all();
 }
 
-// A row of a music, to find out its channel and name. Prefers a row that
-// knows the channel: imported rows may not.
+// The channels that have a post with this id (message ids repeat across
+// channels), each with the post's name.
 export async function findMusic(musicId) {
-  const rows = await db.select().from(likes).where(eq(likes.music_id, musicId)).all();
-  return rows.find((r) => r.channel_id) ?? rows[0] ?? null;
+  return db.all(sql`
+    SELECT channel_id, max(music_name) AS music_name FROM likes
+    WHERE music_id = ${musicId} AND channel_id IS NOT NULL GROUP BY channel_id`);
 }
 
-export async function countLikes(musicId) {
+export async function countLikes(channelId, musicId) {
   const row = await db.get(sql`
     SELECT coalesce(sum(liked = 1), 0) AS liked, coalesce(sum(liked = 0), 0) AS disliked
-    FROM likes WHERE music_id = ${musicId}`);
+    FROM likes WHERE channel_id = ${String(channelId)} AND music_id = ${musicId}`);
   return { liked: Number(row?.liked ?? 0), disliked: Number(row?.disliked ?? 0) };
 }
 
@@ -68,7 +69,7 @@ export function likeKeyboard(liked = 0, disliked = 0) {
 
 // Redraws the buttons under a channel post with the current counts.
 export async function refreshButtons(chatId, musicId) {
-  const { liked, disliked } = await countLikes(musicId);
+  const { liked, disliked } = await countLikes(chatId, musicId);
   try {
     await api.editMessageReplyMarkup({
       chat_id: chatId,

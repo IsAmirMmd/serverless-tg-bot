@@ -8,10 +8,18 @@ import { cleanMetadata } from '../lib/llm.js';
 import { basicMetadata } from '../lib/metadata.js';
 import { buildCaption } from '../lib/caption.js';
 import { likeKeyboard } from '../lib/likes.js';
+import { getChannel, saveChannel } from '../lib/channels.js';
 
 export default async function (post, ctx) {
+  // Only channels the owner activated are served. A channel the bot was in
+  // before my_chat_member was handled shows up here first: record it as pending.
+  const channel = (await getChannel(post.chat.id)) ?? (await saveChannel(post.chat));
+  if (channel.status !== 'active') return;
+
   const audio = post.audio;
   if (!audio?.mime_type?.startsWith('audio/')) {
+    // The notice is meant for the owner's own channels, not customers' text posts.
+    if (channel.added_by && channel.added_by !== ADMIN_ID) return;
     await api.sendMessage({
       chat_id: ADMIN_ID,
       text: `Please send me an audio or music file, and I'll find the lyrics for you! 🎵\n\n${SIGNATURE}`,

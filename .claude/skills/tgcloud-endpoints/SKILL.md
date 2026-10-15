@@ -67,6 +67,8 @@ export function requireAdmin(ctx) {
 
 The UI shows a "no access" screen when `err.code === 'FORBIDDEN'`.
 
+**Multi-tenant scope (owner + channel members).** In this repo, `tgcloud/lib/access.js` has `channelScope(ctx, input.channelId)`. It returns `null` (owner asking for `'all'`) or the list of chat ids the caller may read, and throws `FORBIDDEN` otherwise. Every stats query then adds `scopeCondition(scope)` (`channel_id IN (…)`). The client may send any `channelId`, and the server re-checks it against `channel_members` each time. Owner-only actions call `requireOwner(ctx)`. Members, invites and channel status live in `tgcloud/lib/channels.js`.
+
 **Thin endpoint, logic in lib.** Endpoints, bot handlers and scripts can all share it:
 
 ```js

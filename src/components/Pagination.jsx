@@ -14,7 +14,8 @@ export default function Pagination({ page, pages, total, size, onPage, onSize, d
       </div>
       <div className="mz-row">
         <span className="mz-pagination__info">
-          صفحه {fa(page)} از {fa(pages)} · {fa(total)} ردیف
+          {/* not "·": next to Persian digits it reads as a zero (۰) */}
+          صفحه {fa(page)} از {fa(pages)}، مجموع {fa(total)} ردیف
         </span>
         <select
           className="mz-select mz-btn--sm"

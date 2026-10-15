@@ -18,6 +18,19 @@
 .cell-user small { color: var(--mz-muted); font-size: var(--mz-fs-xs); }
 .cell-ids { font-size: var(--mz-fs-sm); line-height: 1.7; color: var(--mz-muted); }
 
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
+.field__label { font-size: var(--mz-fs-sm); font-weight: 700; color: var(--mz-muted); }
+.field .mz-select { width: 100%; }
+.channel-picker { max-width: 360px; flex: none; }
+.form-row { align-items: flex-end; }
+.form-row .mz-input { flex: 1 1 200px; }
+.section-head { justify-content: space-between; }
+.section-hint { margin: 0; font-size: var(--mz-fs-sm); line-height: 1.7; }
+.owner-panel { gap: var(--mz-s5); }
+.by-id summary { cursor: pointer; font-weight: 700; color: var(--mz-coral-ink); }
+.by-id[open] summary { margin-bottom: var(--mz-s3); }
+.mz-table code { font-size: var(--mz-fs-xs); }
+
 .mz-skeleton-row td { padding-block: 16px; }
 .stat-skeleton { height: 28px; margin-block: 6px; }
 .alert-row { justify-content: space-between; }
