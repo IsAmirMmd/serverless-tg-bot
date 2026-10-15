@@ -18,6 +18,8 @@ export function utf8Encode(str) {
 }
 
 export function utf8Decode(bytes) {
+  if (typeof bytes === 'string') return bytes;
+  if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes); // ArrayBuffer, number[]
   let str = '';
   const cps = [];
   for (let i = 0; i < bytes.length;) {
