@@ -62,16 +62,37 @@ export async function sendPanel(chatId = ADMIN_ID) {
   await api.sendMessage({ chat_id: chatId, text: '📊 پنل لایک‌ها و گزارش‌ها', reply_markup: panelKeyboard() });
 }
 
-// /backup — the whole likes table as CSV (run every 8 hours by GitHub Actions).
+// Tables in /backup besides likes. `settings` is left out on purpose: it holds
+// secrets (the OpenRouter key) that should not sit in a chat as a file.
+const BACKUP_TABLES = ['channels', 'channel_members', 'payments', 'gift_codes', 'invites', 'bot_users'];
+
+// /backup — every table as CSV, sent as one album of files (run every 8 hours
+// by GitHub Actions). The likes file keeps its old name and shape, so /import
+// still takes it.
 export async function sendBackup() {
-  const likes = await allLikes();
-  if (!likes.length) return;
   const now = new Date();
-  await sendFile(
-    utf8Encode(toCsv(likes)),
-    `Likes_Backup_${stamp(now, true)}.csv`, 'text/csv',
-    `🗄️ Likes table backup\n\nGenerated: ${stamp(now)}`,
-  );
+  const files = [];
+  const likes = await allLikes();
+  if (likes.length) files.push({ name: `Likes_Backup_${stamp(now, true)}.csv`, rows: likes, table: 'likes' });
+  for (const table of BACKUP_TABLES) {
+    const rows = await db.all(sql`SELECT * FROM ${sql.raw(table)}`);
+    if (rows.length) files.push({ name: `${table}_${stamp(now, true)}.csv`, rows, table });
+  }
+  if (!files.length) return;
+
+  const summary = files.map((f) => `${f.table}: ${f.rows.length}`).join('\n');
+  const caption = `🗄️ Backup\n\nGenerated: ${stamp(now)}\n\n${summary}`;
+  const docs = files.map((f) => new InputFile(utf8Encode(toCsv(f.rows)), f.name, { type: 'text/csv' }));
+
+  if (docs.length === 1) {
+    await api.sendDocument({ chat_id: ADMIN_ID, document: docs[0], caption });
+    return;
+  }
+  // An album: one message with every file; the caption goes on the last one.
+  await api.sendMediaGroup({
+    chat_id: ADMIN_ID,
+    media: docs.map((doc, i) => ({ type: 'document', media: doc, ...(i === docs.length - 1 ? { caption } : {}) })),
+  });
 }
 
 // "liked <post link> <count>" — the link names the channel, e.g.
