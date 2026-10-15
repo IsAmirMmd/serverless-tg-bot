@@ -95,7 +95,11 @@ const toBool = (v) => (/^(true|1)$/i.test(String(v).trim()) ? true : /^(false|0)
 // workflow sent — loaded into the likes table. Votes already in the table win
 // over the file, so votes cast since the backup are kept.
 export async function importLikes(document) {
+  if (!document) {
+    return tell('Send the CSV backup as a file with the caption /import, or reply /import to a forwarded backup file.');
+  }
   const csv = parseCsv(utf8Decode(await api.getFileContent(document.file_id)));
+  if (!csv.length) return tell(`No rows found in ${document.file_name ?? 'the file'}. Is it the CSV backup?`);
   const rows = [];
   for (const r of csv) {
     const row = {

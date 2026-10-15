@@ -7,16 +7,33 @@ import {
   sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey,
 } from '../lib/admin.js';
 
+// The admin command in `text`, started; or null when it is not one.
+function adminCommand(message, text) {
+  if (text === '/report') return sendReports();
+  if (text === '/backup') return sendBackup();
+  // The file itself, or a forwarded file this message replies to.
+  if (text === '/import') return importLikes(message.document ?? message.reply_to_message?.document);
+  if (/^\/setkey(\s|$)/.test(text)) return setApiKey(message, text.slice('/setkey'.length).trim());
+  const fake = parseFakeCommand(text);
+  if (fake) return addFakeLikes(fake);
+  return null;
+}
+
 export default async function (message, ctx) {
   const text = (message.text ?? message.caption ?? '').trim();
 
   if (message.from?.id === ADMIN_ID) {
-    if (text === '/report') return sendReports();
-    if (text === '/backup') return sendBackup();
-    if (text === '/import' && message.document) return importLikes(message.document);
-    if (/^\/setkey(\s|$)/.test(text)) return setApiKey(message, text.slice('/setkey'.length).trim());
-    const fake = parseFakeCommand(text);
-    if (fake) return addFakeLikes(fake);
+    const command = adminCommand(message, text);
+    if (command) {
+      try {
+        await command;
+      } catch (e) {
+        // Otherwise a failed command is silent: logs are only visible through `tgcloud run`.
+        console.error(e);
+        await api.sendMessage({ chat_id: ADMIN_ID, text: `⚠️ Command failed:\n${e.message}` });
+      }
+      return;
+    }
   }
 
   await api.sendMessage({
