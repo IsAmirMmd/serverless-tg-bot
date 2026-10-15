@@ -8,6 +8,7 @@ import { ADMIN_ID } from '../lib/config.js';
 import { upsertLikes, refreshButtons } from '../lib/likes.js';
 import { isActive, setStatus } from '../lib/channels.js';
 import { handleMenuCallback } from '../lib/menu.js';
+import { trackVote } from '../lib/botUsers.js';
 
 async function channelAction(query, status, chatId) {
   if (query.from.id !== ADMIN_ID) {
@@ -47,6 +48,8 @@ export default async function (query, ctx) {
     channel_id: String(post.chat.id),
     music_name: [audio.title, audio.performer].filter(Boolean).join(' - '),
   }]);
+
+  await trackVote(query.from);
 
   await api.answerCallbackQuery({ callback_query_id: query.id, text: 'نظرت ثبت شد 🛌', show_alert: true });
   await refreshButtons(post.chat.id, post.message_id);

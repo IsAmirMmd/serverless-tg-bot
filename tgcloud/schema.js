@@ -49,8 +49,8 @@ export const channel_members = table('channel_members', {
   channelUser: uniqueIndex('uidx_members_channel_user').on(t.channel_id, t.user_id),
 }));
 
-// Everyone who has started the bot (one row per Telegram user), kept up to
-// date on every /start.
+// Everyone who has started the bot or voted under a channel post (one row per
+// Telegram user), kept up to date on every /start and vote.
 export const bot_users = table('bot_users', {
   user_id:       integer('user_id').primaryKey(),
   username:      text('username'),
@@ -59,7 +59,10 @@ export const bot_users = table('bot_users', {
   language_code: text('language_code'),
   is_premium:    boolean('is_premium').notNull().default(false),
   start_param:   text('start_param'),                     // payload of the first /start (e.g. inv_…)
-  start_count:   integer('start_count').notNull().default(1),
+  start_count:   integer('start_count').notNull().default(1),  // 0: only voted, never started
+  joined_via:    text('joined_via').notNull().default('start'), // start | vote — how they first showed up
+  vote_count:    integer('vote_count').notNull().default(0),    // button presses on channel posts
+  last_vote_at:  integer('last_vote_at', { mode: 'timestamp' }),
   first_seen_at: integer('first_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
   last_seen_at:  integer('last_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 });

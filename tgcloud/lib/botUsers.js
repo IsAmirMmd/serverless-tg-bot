@@ -1,5 +1,5 @@
-// The bot_users table: who has started the bot. Written on every /start,
-// listed in the owner's "اعضای ربات" panel tab.
+// The bot_users table: who has started the bot or voted under a channel post.
+// Written on every /start and vote, listed in the owner's "اعضای ربات" panel tab.
 
 import { db } from 'sdk';
 import { sql } from 'sdk/db';
@@ -30,10 +30,36 @@ export async function trackStart(message) {
   }
 }
 
+// Records a vote (❤️ / 🥀 under a channel post) by `user` — query.from. A voter
+// who never started the bot gets a row with start_count 0, joined_via 'vote'.
+// Never throws — tracking must not break voting.
+export async function trackVote(user) {
+  if (!user || user.is_bot) return;
+  try {
+    await db.run(sql`
+      INSERT INTO bot_users (user_id, username, first_name, last_name, language_code, is_premium,
+                             start_count, joined_via, vote_count, last_vote_at)
+      VALUES (${user.id}, ${user.username ?? null}, ${user.first_name ?? null}, ${user.last_name ?? null},
+              ${user.language_code ?? null}, ${user.is_premium ? 1 : 0}, 0, 'vote', 1, unixepoch())
+      ON CONFLICT (user_id) DO UPDATE SET
+        username = excluded.username,
+        first_name = excluded.first_name,
+        last_name = excluded.last_name,
+        language_code = coalesce(excluded.language_code, bot_users.language_code),
+        is_premium = excluded.is_premium,
+        vote_count = bot_users.vote_count + 1,
+        last_vote_at = unixepoch(),
+        last_seen_at = unixepoch()`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 // Owner list: newest first, with whether each user has panel access or paid.
 export async function listBotUsers(input = {}) {
   const p = pageParams(input);
   const where = whereOf([
+    input.kind === 'started' ? sql`u.start_count > 0` : input.kind === 'voters' ? sql`u.vote_count > 0` : null,
     searchCondition(input.q, { names: ['u.username', 'u.first_name', 'u.last_name'], ids: ['u.user_id'] }),
   ]);
   const total = Number((await db.get(sql`SELECT count(*) AS n FROM bot_users u ${where}`))?.n ?? 0);
@@ -46,6 +72,8 @@ export async function listBotUsers(input = {}) {
     LIMIT ${p.size} OFFSET ${p.offset}`);
   const sums = await db.get(sql`
     SELECT count(*) AS users,
+           coalesce(sum(start_count > 0), 0) AS started,
+           coalesce(sum(vote_count > 0), 0) AS voters,
            coalesce(sum(first_seen_at > unixepoch() - 86400), 0) AS new_1d,
            coalesce(sum(first_seen_at > unixepoch() - 7 * 86400), 0) AS new_7d,
            coalesce(sum(is_premium = 1), 0) AS premium
