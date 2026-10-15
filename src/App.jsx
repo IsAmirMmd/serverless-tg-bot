@@ -90,6 +90,7 @@ function TableView({ tab, reloadKey }) {
       <DataTable
         columns={view.columns}
         rows={data?.rows ?? []}
+        meta={data}
         rowKey={view.rowKey}
         loading={loading}
         skeletonRows={Math.min(size, 8)}

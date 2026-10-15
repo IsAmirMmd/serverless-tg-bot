@@ -189,6 +189,13 @@ body {
 .mz-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--mz-s3); }
 .mz-pagination__info { color: var(--mz-muted); font-size: var(--mz-fs-sm); }
 
+/* ---------- links ---------- */
+.mz-link {
+  color: var(--mz-coral-ink); font-weight: 700;
+  text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px;
+}
+.mz-link:hover { color: var(--mz-coral); text-underline-offset: 5px; }
+
 /* ---------- states ---------- */
 .mz-empty { text-align: center; padding: var(--mz-s6) var(--mz-s4); color: var(--mz-muted); }
 .mz-alert {

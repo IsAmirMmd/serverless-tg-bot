@@ -1,7 +1,7 @@
 // Data for the admin Mini App (index.html + src/): paginated likes and the
 // per-user / per-music reports. Endpoints in endpoints/admin*.js call these.
 
-import { db, EndpointError } from 'sdk';
+import { db, api, EndpointError } from 'sdk';
 import { sql } from 'sdk/db';
 import { ADMIN_ID } from './config.js';
 
@@ -22,8 +22,12 @@ export function pageParams(input = {}) {
   return { page, size, offset: (page - 1) * size };
 }
 
-const pageResult = (rows, total, { page, size }) =>
-  ({ rows, page, size, total, pages: Math.max(1, Math.ceil(total / size)) });
+// { rows, page, size, total, pages, channelBase } — channelBase: link prefix
+// for a bare music id, or null when no channel is known.
+async function pageResult(rows, total, { page, size }) {
+  const linked = await withLinks(rows);
+  return { ...linked, page, size, total, pages: Math.max(1, Math.ceil(total / size)) };
+}
 
 // The search box: text matches names; a number also matches the ids.
 function searchCondition(q, { names, ids }) {
@@ -39,6 +43,51 @@ const whereOf = (conds) => {
   const list = conds.filter(Boolean);
   return list.length ? sql`WHERE ${list.reduce((a, b) => sql`${a} AND ${b}`)}` : sql``;
 };
+
+// ---------- links to the channel posts ----------
+// music_id is the message_id of the post, so a link is <channel base><music_id>.
+// Nothing is configured: the channel comes from the row, or — for rows saved
+// without one (imports) — the channel most votes came from.
+
+const postBases = new Map(); // channel_id → 'https://t.me/<username>/' | 'https://t.me/c/<id>/' | null
+
+async function postBase(channelId) {
+  if (!channelId) return null;
+  const key = String(channelId);
+  if (!postBases.has(key)) {
+    let base = null;
+    try {
+      const chat = await api.getChat({ chat_id: key });
+      if (chat.username) base = `https://t.me/${chat.username}/`;
+    } catch (e) {
+      console.error(e); // bot no longer in the channel: fall back to the private link
+    }
+    // Private channel: works for its members, the admin included.
+    if (!base && key.startsWith('-100')) base = `https://t.me/c/${key.slice(4)}/`;
+    postBases.set(key, base);
+  }
+  return postBases.get(key);
+}
+
+async function defaultChannel() {
+  const row = await db.get(sql`
+    SELECT channel_id FROM likes WHERE channel_id IS NOT NULL AND channel_id != ''
+    GROUP BY channel_id ORDER BY count(*) DESC LIMIT 1`);
+  return row?.channel_id ?? null;
+}
+
+// Adds music_url to rows that have music_id (+ channel_id); returns the default
+// base too, for lists of ids (the user report).
+async function withLinks(rows) {
+  const channelBase = await postBase(await defaultChannel());
+  const linked = [];
+  for (const r of rows) {
+    if (r.music_id == null) { linked.push(r); continue; }
+    const base = (await postBase(r.channel_id)) ?? channelBase;
+    linked.push({ ...r, music_url: base ? base + r.music_id : null });
+  }
+  return { rows: linked, channelBase };
+}
 
 // Totals for the stat tiles.
 export async function summary() {
@@ -98,6 +147,7 @@ export async function musicReport(input = {}) {
   const grouped = sql`
     SELECT music_id,
            max(music_name) AS music_name,
+           max(channel_id) AS channel_id,
            coalesce(sum(liked = 1), 0) AS total_likes,
            coalesce(sum(liked = 0), 0) AS total_dislikes,
            group_concat(CASE WHEN liked = 1 THEN coalesce(user_name, user_id) END, '، ') AS liked_by,

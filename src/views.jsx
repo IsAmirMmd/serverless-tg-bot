@@ -1,6 +1,8 @@
 // The three tables: which endpoint feeds each one and how its columns render.
 import { fa, faDate, faDigits } from './lib/format.js';
-import { UserCell, MusicCell, VoteBadge, ListCell } from './components/cells.jsx';
+import { UserCell, MusicCell, VoteBadge, ListCell, MusicIdsCell } from './components/cells.jsx';
+
+// render(row, page) — page is the endpoint result ({ channelBase, … }).
 
 export const VIEWS = {
   likes: {
@@ -12,7 +14,7 @@ export const VIEWS = {
     columns: [
       { key: 'id', title: '#', className: 'mz-cell-num', render: (r) => faDigits(r.id) },
       { key: 'user', title: 'کاربر', className: 'mz-cell-nowrap', render: (r) => <UserCell name={r.user_name} id={r.user_id} /> },
-      { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} /> },
+      { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} url={r.music_url} /> },
       { key: 'vote', title: 'رأی', render: (r) => <VoteBadge liked={r.liked} /> },
       { key: 'at', title: 'زمان', className: 'mz-cell-num', render: (r) => faDate(r.updated_at ?? r.created_at) },
     ],
@@ -27,8 +29,8 @@ export const VIEWS = {
       { key: 'liked', title: '❤️', className: 'mz-cell-num', render: (r) => fa(r.total_liked) },
       { key: 'disliked', title: '🥀', className: 'mz-cell-num', render: (r) => fa(r.total_disliked) },
       { key: 'total', title: 'مجموع', className: 'mz-cell-num', render: (r) => <strong>{fa(r.total_votes)}</strong> },
-      { key: 'likedList', title: 'آهنگ‌های لایک‌شده', className: 'mz-cell-wrap', render: (r) => <ListCell value={r.liked_musics} /> },
-      { key: 'dislikedList', title: 'آهنگ‌های دیس‌لایک‌شده', className: 'mz-cell-wrap', render: (r) => <ListCell value={r.disliked_musics} /> },
+      { key: 'likedList', title: 'آهنگ‌های لایک‌شده', className: 'mz-cell-wrap', render: (r, p) => <MusicIdsCell value={r.liked_musics} channelBase={p?.channelBase} /> },
+      { key: 'dislikedList', title: 'آهنگ‌های دیس‌لایک‌شده', className: 'mz-cell-wrap', render: (r, p) => <MusicIdsCell value={r.disliked_musics} channelBase={p?.channelBase} /> },
       { key: 'at', title: 'آخرین رأی', className: 'mz-cell-num', render: (r) => faDate(r.last_vote_at) },
     ],
   },
@@ -38,7 +40,7 @@ export const VIEWS = {
     search: 'جستجوی نام آهنگ یا شناسه…',
     rowKey: (r) => r.music_id,
     columns: [
-      { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} /> },
+      { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} url={r.music_url} /> },
       { key: 'likes', title: '❤️', className: 'mz-cell-num', render: (r) => <strong>{fa(r.total_likes)}</strong> },
       { key: 'dislikes', title: '🥀', className: 'mz-cell-num', render: (r) => fa(r.total_dislikes) },
       { key: 'likedBy', title: 'لایک‌کننده‌ها', className: 'mz-cell-wrap', render: (r) => <ListCell value={r.liked_by} /> },

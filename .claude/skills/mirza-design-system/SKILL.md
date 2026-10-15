@@ -39,6 +39,7 @@ Taken from mirzaplugin.ir in October 2026: the theme CSS variables (`main.css`, 
 | `.mz-badge`, `--like`, `--dislike`, `--neutral` | status pills |
 | `.mz-table-wrap` > `table.mz-table` (`.mz-cell-num`, `.mz-cell-wrap`, `.mz-cell-nowrap`) | data table; the wrapper scrolls sideways on phones, sticky sand header |
 | `.mz-pagination` (`__info`) | prev/next + "page x of y" row |
+| `.mz-link` | coral-ink underlined link (t.me posts etc.) |
 | `.mz-empty`, `.mz-alert` (`--success`), `.mz-skeleton` | empty, error and loading states |
 
 Example (a table card):

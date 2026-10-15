@@ -108,6 +108,8 @@ Column names that come from code (never from input) can go through `sql.raw('use
 `SELECT * FROM (${grouped}) WHERE ${having} … LIMIT … OFFSET …` and `SELECT count(*) AS n FROM (${filtered})`.
 `group_concat(CASE WHEN liked = 1 THEN music_id END, '، ')` builds lists. `coalesce(sum(liked = 1), 0)` counts.
 
+**Links to channel posts (no config).** A post's message_id plus its chat gives a link. `api.getChat({ chat_id })` → `chat.username` ? `https://t.me/<username>/<id>` : `https://t.me/c/<chat_id without -100>/<id>` (private, members only). Cache the base per chat in a module-level `Map`. For rows without a chat id, fall back to the most frequent one in the table. Return `music_url` per row, plus a page-wide `channelBase` for id lists. Open them in the UI with `Telegram.WebApp.openTelegramLink(url)`. See `withLinks()` in this repo's `tgcloud/lib/dashboard.js`.
+
 **Raw SQL returns raw values**: booleans come back as `0/1`, timestamps as unix seconds, JSON as strings, and aggregates may be strings. Convert them before returning (`liked: r.liked === 1`, `Number(n)`). Only the table-bound builder (`db.select().from(t)`) converts by column mode.
 
 ## db cheat sheet (all async, always `await`)

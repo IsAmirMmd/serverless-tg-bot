@@ -1,5 +1,6 @@
-// columns = [{ key, title, render(row), className }]
-export default function DataTable({ columns, rows, loading, rowKey, skeletonRows = 8 }) {
+// columns = [{ key, title, render(row, meta), className }] — meta: whatever the
+// caller passes (here the endpoint result, for page-wide values like channelBase).
+export default function DataTable({ columns, rows, loading, rowKey, meta, skeletonRows = 8 }) {
   return (
     <div className="mz-table-wrap">
       <table className="mz-table">
@@ -17,7 +18,7 @@ export default function DataTable({ columns, rows, loading, rowKey, skeletonRows
               ? <tr><td colSpan={columns.length}><div className="mz-empty">موردی پیدا نشد</div></td></tr>
               : rows.map((row) => (
                 <tr key={rowKey(row)}>
-                  {columns.map((c) => <td key={c.key} className={c.className}>{c.render(row)}</td>)}
+                  {columns.map((c) => <td key={c.key} className={c.className}>{c.render(row, meta)}</td>)}
                 </tr>
               ))}
         </tbody>
