@@ -43,14 +43,6 @@ export async function allLikes() {
   return db.select().from(likes).orderBy(asc(likes.id)).all();
 }
 
-// The channels that have a post with this id (message ids repeat across
-// channels), each with the post's name.
-export async function findMusic(musicId) {
-  return db.all(sql`
-    SELECT channel_id, max(music_name) AS music_name FROM likes
-    WHERE music_id = ${musicId} AND channel_id IS NOT NULL GROUP BY channel_id`);
-}
-
 export async function countLikes(channelId, musicId) {
   const row = await db.get(sql`
     SELECT coalesce(sum(liked = 1), 0) AS liked, coalesce(sum(liked = 0), 0) AS disliked

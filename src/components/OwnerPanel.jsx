@@ -165,6 +165,66 @@ function NewMemberCard({ channels, run, busy }) {
   );
 }
 
+// Fake likes/dislikes on any channel post, named by its link (the link carries the channel).
+function FakeVotesCard({ run, busy }) {
+  const [link, setLink] = useState('');
+  const [count, setCount] = useState('10');
+  const [liked, setLiked] = useState(true);
+  const [last, setLast] = useState(null);
+
+  const submit = async () => {
+    const n = Number(count);
+    const label = liked ? 'لایک' : 'دیس‌لایک';
+    if (!(await confirmDialog(`${fa(n)} ${label} ساختگی به این پست اضافه شود؟`))) return;
+    const result = await run('ownerFakeVotes', { link: link.trim(), liked, count: n });
+    if (result) setLast(result);
+  };
+
+  return (
+    <section className="mz-card mz-stack">
+      <h2 className="mz-subtitle">لایک ساختگی</h2>
+      <p className="mz-muted section-hint">
+        لینک پست را از تلگرام کپی کنید (روی پست: Copy Post Link). کانال از روی لینک تشخیص داده می‌شود.
+      </p>
+      <input
+        className="mz-input"
+        dir="ltr"
+        placeholder="https://t.me/channel/123"
+        value={link}
+        onChange={(e) => { setLink(e.target.value); setLast(null); }}
+      />
+      <div className="mz-row form-row">
+        <div className="mz-row">
+          <button type="button" className="mz-chip" aria-pressed={liked} onClick={() => setLiked(true)}>❤️ لایک</button>
+          <button type="button" className="mz-chip" aria-pressed={!liked} onClick={() => setLiked(false)}>🥀 دیس‌لایک</button>
+        </div>
+        <input
+          className="mz-input mz-num count-input"
+          inputMode="numeric"
+          dir="ltr"
+          aria-label="تعداد"
+          value={count}
+          onChange={(e) => setCount(e.target.value.replace(/[^\d]/g, ''))}
+        />
+        <button
+          type="button"
+          className="mz-btn mz-btn--primary"
+          disabled={busy || !link.trim() || !Number(count)}
+          onClick={submit}
+        >
+          افزودن
+        </button>
+      </div>
+      {last && (
+        <div className="mz-alert mz-alert--success">
+          {fa(last.added)} رأی به پست #{faDigits(last.musicId)} در «{last.channel_title}» اضافه شد.
+          الان: ❤️ {fa(last.liked)} · 🥀 {fa(last.disliked)}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MembersCard({ channels, reloadKey, run, busy }) {
   const [channelId, setChannelId] = useState('all');
   const [page, setPage] = useState(1);
@@ -249,6 +309,7 @@ export default function OwnerPanel({ onChannelsChanged }) {
       {error && <div className="mz-alert">{errorText(error)}</div>}
       <ChannelsCard channels={channels} loading={loading && !data} run={run} busy={busy} />
       <NewMemberCard channels={channels} run={run} busy={busy} />
+      <FakeVotesCard run={run} busy={busy} />
       <MembersCard channels={channels} reloadKey={reloadKey} run={run} busy={busy} />
       <InvitesCard reloadKey={reloadKey} run={run} busy={busy} />
     </div>

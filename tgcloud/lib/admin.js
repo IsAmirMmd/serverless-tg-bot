@@ -1,8 +1,9 @@
 import { api, db, InputFile } from 'sdk';
 import { sql } from 'sdk/db';
-import { ADMIN_ID, SIGNATURE, MAX_FAKE_LIKES } from './config.js';
+import { ADMIN_ID, SIGNATURE } from './config.js';
+import { resolvePost, addFakeVotes, FakeVoteError } from './fakeVotes.js';
 import { enablePanelButton, panelKeyboard } from './channels.js';
-import { allLikes, countAllLikes, findMusic, upsertLikes, refreshButtons } from './likes.js';
+import { allLikes, countAllLikes, upsertLikes } from './likes.js';
 import { buildUserReport, buildMusicReport } from './report.js';
 import { toXlsx, toCsv, parseCsv, utf8Encode, utf8Decode } from './files.js';
 import { setSetting } from './settings.js';
@@ -73,12 +74,16 @@ export async function sendBackup() {
   );
 }
 
-// "liked <music_id> <count> [channel_id]" / "disliked …" → { liked, musicId, count, channelId }, or null.
-// The channel is needed only when two channels have a post with that id.
+// "liked <post link> <count>" — the link names the channel, e.g.
+//   liked https://t.me/chosi_chnl/1339 50
+// Also, as before: "liked <post number> <count> [channel_id]".
+// → { liked, link | musicId, count, channelId }, or null.
 export function parseFakeCommand(text) {
-  const m = /^(liked|disliked)\s+(\d+)\s+(\d+)(?:\s+(-?\d+))?$/i.exec(text);
+  const m = /^(liked|disliked)\s+(\S+)\s+(\d+)(?:\s+(-?\d+))?$/i.exec(text);
   if (!m) return null;
-  return { liked: m[1].toLowerCase() === 'liked', musicId: Number(m[2]), count: Number(m[3]), channelId: m[4] ?? null };
+  const liked = m[1].toLowerCase() === 'liked';
+  const target = /^\d+$/.test(m[2]) ? { musicId: Number(m[2]) } : { link: m[2] };
+  return { liked, ...target, count: Number(m[3]), channelId: m[4] ?? null };
 }
 
 // The channel id as stored, normalized to a -100… chat id.
@@ -88,33 +93,16 @@ function channelChatId(channelId) {
 }
 
 // Adds `count` votes from made-up users to a channel post and redraws its buttons.
-export async function addFakeLikes({ liked, musicId, count, channelId }) {
-  if (count > MAX_FAKE_LIKES) return tell(`At most ${MAX_FAKE_LIKES} at a time.`);
-  const found = await findMusic(musicId);
-  const candidates = channelId ? found.filter((m) => m.channel_id === channelChatId(channelId)) : found;
-  if (!candidates.length) {
-    return tell(`The channel of music ${musicId} is unknown. Vote on the post once, then try again.`);
+export async function addFakeLikes({ liked, link, musicId, count, channelId }) {
+  try {
+    const post = await resolvePost({ link, musicId, channelId });
+    const r = await addFakeVotes({ ...post, liked, count });
+    await tell(`✅ ${r.added} ${liked ? 'لایک' : 'دیس‌لایک'} به پست ${r.musicId} در «${r.channel.title ?? r.channel.chat_id}» اضافه شد.\n` +
+      `الان: ❤️ ${r.liked} · 🥀 ${r.disliked}`);
+  } catch (e) {
+    if (e instanceof FakeVoteError) return tell(`⛔️ ${e.message}`);
+    throw e;
   }
-  if (candidates.length > 1) {
-    return tell(`Music ${musicId} exists in several channels: ${candidates.map((m) => m.channel_id).join(', ')}.\n` +
-      `Add the channel: ${liked ? 'liked' : 'disliked'} ${musicId} ${count} <channel_id>`);
-  }
-  const music = candidates[0];
-
-  const rows = [];
-  for (let i = 0; i < count; i++) {
-    rows.push({
-      user_id: -(Math.floor(Math.random() * 900000000) + 100000000),
-      liked,
-      music_id: musicId,
-      user_name: `testuser${Math.floor(Math.random() * 900000) + 100000}`,
-      channel_id: String(music.channel_id),
-      music_name: music.music_name ?? '',
-    });
-  }
-  await upsertLikes(rows);
-  await refreshButtons(channelChatId(music.channel_id), musicId);
-  await tell('Done ✅');
 }
 
 const toInt = (v) => (/^-?\d+$/.test(String(v).trim()) ? Number(v) : null);
