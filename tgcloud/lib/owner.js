@@ -58,6 +58,31 @@ export async function revokeInvite(code) {
   await db.run(sql`UPDATE invites SET revoked = 1 WHERE code = ${String(code)}`);
 }
 
+// Stars payments, newest first, plus totals. A row is "active" while its
+// period has not ended.
+export async function listPayments(input = {}) {
+  const p = pageParams(input);
+  const where = whereOf([
+    searchCondition(input.q, { names: ['user_name', 'charge_id'], ids: ['user_id'] }),
+  ]);
+  const total = Number((await db.get(sql`SELECT count(*) AS n FROM payments ${where}`))?.n ?? 0);
+  const rows = await db.all(sql`
+    SELECT *, period_end > unixepoch() AS active FROM payments ${where}
+    ORDER BY created_at DESC, id DESC
+    LIMIT ${p.size} OFFSET ${p.offset}`);
+  const sums = await db.get(sql`
+    SELECT count(*) AS payments,
+           coalesce(sum(stars), 0) AS stars,
+           (SELECT count(DISTINCT user_id) FROM payments WHERE period_end > unixepoch()) AS active_users,
+           coalesce(sum(CASE WHEN created_at > unixepoch() - 30 * 86400 THEN stars END), 0) AS stars_30d
+    FROM payments`);
+  return {
+    rows: rows.map((r) => ({ ...r, active: r.active === 1 })),
+    page: p.page, size: p.size, total, pages: pages(total, p.size),
+    summary: Object.fromEntries(Object.entries(sums ?? {}).map(([k, v]) => [k, Number(v ?? 0)])),
+  };
+}
+
 // The channel named in an owner request, or EndpointError NOT_FOUND.
 export async function channelFromInput(channelId) {
   const channel = channelId ? await getChannel(String(channelId)) : null;

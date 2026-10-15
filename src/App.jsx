@@ -7,8 +7,11 @@ import Tabs from './components/Tabs.jsx';
 import DataTable from './components/DataTable.jsx';
 import Pagination from './components/Pagination.jsx';
 import OwnerPanel from './components/OwnerPanel.jsx';
+import PaymentsPanel from './components/PaymentsPanel.jsx';
 
 const OWNER_TAB = 'manage';
+const PAYMENTS_TAB = 'payments';
+const OWNER_TABS = [OWNER_TAB, PAYMENTS_TAB];
 
 function errorText(e) {
   return e.type === 'ENDPOINT_ERROR' ? e.message : `خطا در دریافت اطلاعات (${e.type ?? e.message})`;
@@ -155,7 +158,10 @@ export default function App() {
 
   const tabItems = useMemo(() => [
     ...Object.entries(VIEWS).map(([id, v]) => ({ id, label: v.label })),
-    ...(isOwner ? [{ id: OWNER_TAB, label: 'کاربران و کانال‌ها' }] : []),
+    ...(isOwner ? [
+      { id: OWNER_TAB, label: 'کاربران و کانال‌ها' },
+      { id: PAYMENTS_TAB, label: 'پرداخت‌ها' },
+    ] : []),
   ], [isOwner]);
 
   if (me.error?.type === 'NOT_IN_TELEGRAM') return <Notice icon="📱" text="این صفحه را از داخل تلگرام باز کنید" />;
@@ -185,7 +191,7 @@ export default function App() {
         </button>
       </header>
 
-      {tab !== OWNER_TAB && (
+      {!OWNER_TABS.includes(tab) && (
         <>
           <ChannelPicker channels={channels} value={channelId} onChange={setChannelId} allowAll={allowAll} />
           {summary.error && <div className="mz-alert">{errorText(summary.error)}</div>}
@@ -195,10 +201,12 @@ export default function App() {
 
       <Tabs items={tabItems} value={tab} onChange={setTab} />
 
-      {tab === OWNER_TAB
-        ? <OwnerPanel onChannelsChanged={() => setMeKey((k) => k + 1)} />
-        // key: a new tab starts with a fresh search, filter and page
-        : <TableView key={tab} tab={tab} channelId={channelId} showChannel={showChannel} reloadKey={reloadKey} />}
+      {tab === OWNER_TAB && <OwnerPanel onChannelsChanged={() => setMeKey((k) => k + 1)} />}
+      {tab === PAYMENTS_TAB && <PaymentsPanel reloadKey={reloadKey} />}
+      {/* key: a new tab starts with a fresh search, filter and page */}
+      {!OWNER_TABS.includes(tab) && (
+        <TableView key={tab} tab={tab} channelId={channelId} showChannel={showChannel} reloadKey={reloadKey} />
+      )}
     </main>
   );
 }
