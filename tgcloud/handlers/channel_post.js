@@ -3,8 +3,9 @@
 // buttons, and the original is deleted.
 
 import { api } from 'sdk';
-import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
+import { ADMIN_ID, SIGNATURE, USE_LLM } from '../lib/config.js';
 import { cleanMetadata } from '../lib/llm.js';
+import { basicMetadata } from '../lib/metadata.js';
 import { buildCaption } from '../lib/caption.js';
 import { likeKeyboard } from '../lib/likes.js';
 
@@ -18,15 +19,17 @@ export default async function (post, ctx) {
     return;
   }
 
-  let meta;
-  try {
-    meta = await cleanMetadata(audio);
-  } catch (e) {
-    // As in the n8n workflow: tell the admin, and still remove the original post.
-    console.error(e);
-    await api.sendMessage({ chat_id: ADMIN_ID, text: `Error on LLM\n\n${e.message}` });
-    await api.deleteMessage({ chat_id: post.chat.id, message_id: post.message_id });
-    return;
+  let meta = basicMetadata(audio);
+  if (USE_LLM) {
+    try {
+      meta = await cleanMetadata(audio);
+    } catch (e) {
+      // As in the n8n workflow: tell the admin, and still remove the original post.
+      console.error(e);
+      await api.sendMessage({ chat_id: ADMIN_ID, text: `Error on LLM\n\n${e.message}` });
+      await api.deleteMessage({ chat_id: post.chat.id, message_id: post.message_id });
+      return;
+    }
   }
 
   await api.sendAudio({
