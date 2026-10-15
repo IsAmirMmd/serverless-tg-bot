@@ -1,11 +1,13 @@
 // handlers/callback_query.js — an inline button was pressed:
 //   ch:<status>:<chat_id>  the owner activates / rejects a channel (my_chat_member notice)
+//   menu:… / buy:…         the /start menu (lib/menu.js)
 //   anything else          a ❤️ / 🥀 button under a channel post
 
 import { api } from 'sdk';
 import { ADMIN_ID } from '../lib/config.js';
 import { upsertLikes, refreshButtons } from '../lib/likes.js';
 import { isActive, setStatus } from '../lib/channels.js';
+import { handleMenuCallback } from '../lib/menu.js';
 
 async function channelAction(query, status, chatId) {
   if (query.from.id !== ADMIN_ID) {
@@ -25,6 +27,7 @@ async function channelAction(query, status, chatId) {
 export default async function (query, ctx) {
   const action = /^ch:(active|paused):(-?\d+)$/.exec(query.data ?? '');
   if (action) return channelAction(query, action[1], action[2]);
+  if (await handleMenuCallback(query)) return;
 
   const post = query.message;
   if (!post) return; // button on an inline-mode message: no channel post behind it

@@ -49,6 +49,23 @@ export const channel_members = table('channel_members', {
   channelUser: uniqueIndex('uidx_members_channel_user').on(t.channel_id, t.user_id),
 }));
 
+// Subscriptions bought with Telegram Stars (one row per payment). A user's
+// subscription runs until their latest period_end.
+export const payments = table('payments', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  charge_id:  text('charge_id').notNull(),               // telegram_payment_charge_id (for refunds)
+  user_id:    integer('user_id').notNull(),
+  user_name:  text('user_name'),
+  plan:       text('plan').notNull(),                    // PLANS[].id
+  months:     integer('months').notNull(),
+  stars:      integer('stars').notNull(),
+  period_start: integer('period_start', { mode: 'timestamp' }).notNull(),
+  period_end:   integer('period_end', { mode: 'timestamp' }).notNull(),
+  created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+}, (t) => ({
+  charge: uniqueIndex('uidx_payments_charge').on(t.charge_id),
+}));
+
 // One-time invite links: t.me/<bot>?start=inv_<code> → a channel_members row.
 export const invites = table('invites', {
   code:       text('code').primaryKey(),

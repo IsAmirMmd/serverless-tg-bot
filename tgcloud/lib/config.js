@@ -7,8 +7,15 @@ export const ADMIN_ID = 199419831;
 
 export const SIGNATURE = '@isAmirMmd';
 
-// Who people should message about the bot — shown in the /start welcome.
+// Who people should message about the bot — shown in the /start welcome and
+// behind the "support" button.
 export const CONTACT_USERNAME = SIGNATURE;
+
+// Subscription plans sold for Telegram Stars from the /start menu.
+export const PLANS = [
+  { id: 'm1', months: 1, stars: 199, title: 'اشتراک یک‌ماهه' },
+  { id: 'm3', months: 3, stars: 499, title: 'اشتراک سه‌ماهه' },
+];
 
 // The admin Mini App (index.html + src/), deployed by `npm run update`.
 export const MINI_APP_URL = 'https://app8735554979.tgcloud.ai/';

@@ -3,7 +3,8 @@
 // admin commands; anything else gets the same notice the n8n workflow sent.
 
 import { api } from 'sdk';
-import { ADMIN_ID, SIGNATURE, CONTACT_USERNAME } from '../lib/config.js';
+import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
+import { sendWelcome, recordPayment, sendPaySupport } from '../lib/menu.js';
 import {
   sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel,
 } from '../lib/admin.js';
@@ -21,21 +22,6 @@ function adminCommand(message, text) {
   const fake = parseFakeCommand(text);
   if (fake) return addFakeLikes(fake);
   return null;
-}
-
-// Plain /start from someone without panel access: what the bot is, and who to talk to.
-function sendWelcome(message) {
-  const name = message.from?.first_name ? ` ${message.from.first_name}` : '';
-  return api.sendMessage({
-    chat_id: message.chat.id,
-    text:
-      `سلام${name} 👋\n\n` +
-      'من یه ربات برای کانال‌های موزیکم 🎧\n' +
-      'آهنگایی که توی کانال پست میشن رو مرتب می‌کنم، زیرشون دکمه‌ی ❤️ و 🥀 می‌ذارم ' +
-      'و حساب می‌کنم کدوم آهنگا بیشتر به دل بقیه نشسته.\n' +
-      'صاحب کانال هم یه پنل داره که همه‌ی این آمار رو اونجا می‌بینه 📊\n\n' +
-      `اگه می‌خوای ربات روی کانال تو هم باشه یا سوالی داری، به ${CONTACT_USERNAME} پیام بده 😉`,
-  });
 }
 
 // /start inv_<code> from an invite link the owner made in the panel.
@@ -59,6 +45,9 @@ async function acceptInvite(message, code) {
 export default async function (message, ctx) {
   const text = (message.text ?? message.caption ?? '').trim();
   const fromId = message.from?.id;
+
+  if (message.successful_payment) return recordPayment(message);
+  if (text === '/paysupport') return sendPaySupport(message);
 
   const invite = /^\/start\s+inv_([A-Za-z0-9]+)$/.exec(text);
   if (invite && message.chat.type === 'private') return acceptInvite(message, invite[1]);
