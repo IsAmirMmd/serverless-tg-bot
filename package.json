@@ -1,0 +1,26 @@
+{
+  "name": "serverless-tg-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram bot running on Telegram Serverless (tgcloud)",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "login": "tgcloud login",
+    "status": "tgcloud status",
+    "deploy": "tgcloud push",
+    "migrate": "tgcloud migrate",
+    "run": "tgcloud run",
+    "pull": "tgcloud pull",
+    "webhook": "tgcloud webhook"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IsAmirMmd/serverless-tg-bot.git"
+  },
+  "devDependencies": {
+    "@tgcloud/cli": "^0.2.0"
+  }
+}

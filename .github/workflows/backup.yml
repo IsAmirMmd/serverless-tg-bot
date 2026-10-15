@@ -1,0 +1,28 @@
+# Replaces the n8n "Every 8 Hours" Schedule Trigger: Telegram Serverless has no
+# scheduler, so GitHub Actions runs the /backup command in the cloud.
+# Needs the repository secret TGCLOUD_TOKEN (BotFather → your bot → Serverless →
+# CLI Access → Access token).
+name: Likes backup
+
+on:
+  schedule:
+    - cron: '0 */8 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # `run` executes the local modules in the cloud, against the bot's real
+      # database and Bot API. The ids are ADMIN_ID from tgcloud/lib/config.js.
+      - run: |
+          mkdir -p .tgcloud
+          npx tgcloud run handlers/message '{ text: "/backup", from: { id: 199419831 }, chat: { id: 199419831 } }'
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
