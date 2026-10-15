@@ -33,6 +33,12 @@ Reference implementation in this repo: `index.html`, `vite.config.js`, `src/main
    `<script src="https://telegram.org/js/telegram-web-app.js"></script>`
 2. Copy [assets/serverless.js](assets/serverless.js) to `src/lib/serverless.js` and [assets/useEndpoint.js](assets/useEndpoint.js) to `src/lib/useEndpoint.js`. The first turns `Serverless.call` into a promise (`await callEndpoint('getProfile', { lang: 'en' })`). The second is a React hook: `const { data, error, loading, reload } = useEndpoint('adminLikes', { page, size })`. It refetches when the input changes and drops stale responses.
 3. On startup: `Telegram.WebApp.ready(); Telegram.WebApp.expand();`. Use `Telegram.WebApp.themeParams` / CSS vars (`var(--tg-theme-bg-color)`) so the app matches the Telegram theme.
+3a. Fullscreen and close confirmation (this project's panels use both):
+   ```js
+   if (tg?.isVersionAtLeast?.('8.0') && !tg.isFullscreen) tg.requestFullscreen();   // fails → 'fullscreenFailed' event { error: 'UNSUPPORTED' | 'ALREADY_FULLSCREEN' }
+   if (tg?.isVersionAtLeast?.('6.2')) tg.enableClosingConfirmation();               // "are you sure?" on close
+   ```
+   In fullscreen, Telegram's buttons overlay the page. Pad the top and bottom with `var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)` (and `-bottom`). `telegram-web-app.js` sets these variables, and they update on the `safeAreaChanged` / `contentSafeAreaChanged` events. Call `setHeaderColor` so the status bar stays readable. Also available: `exitFullscreen()`, `isFullscreen`, the `fullscreenChanged` event, and `disableClosingConfirmation()`. Docs: https://core.telegram.org/bots/webapps
 4. `initDataUnsafe` is for display only (name, photo). Anything that needs trust goes through an endpoint, which receives **verified** init data.
 5. Keep the bundler's `base` at `/`. Never put files under `/api/` in the build output. Don't set `X-Frame-Options` or a restrictive `frame-ancestors`, because Telegram Web loads the app in an iframe.
 
