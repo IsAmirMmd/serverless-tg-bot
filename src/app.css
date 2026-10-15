@@ -31,6 +31,10 @@
 .by-id[open] summary { margin-bottom: var(--mz-s3); }
 .mz-table code { font-size: var(--mz-fs-xs); }
 .form-row .count-input { flex: 0 0 96px; text-align: center; }
+.struck { text-decoration: line-through; color: var(--mz-muted); }
+.subscription { display: flex; flex-direction: column; gap: var(--mz-s3); }
+.subscription__head { justify-content: space-between; }
+.subscription--warn { border-color: var(--mz-coral-ink); background: var(--mz-coral-soft); }
 .tag-row { gap: 4px; flex-wrap: nowrap; }
 .charge-id { font-size: var(--mz-fs-xs); color: var(--mz-muted); }
 

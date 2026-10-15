@@ -11,7 +11,14 @@ export const SIGNATURE = '@isAmirMmd';
 // behind the "support" button.
 export const CONTACT_USERNAME = SIGNATURE;
 
-// Subscription plans sold for Telegram Stars from the /start menu.
+// true: a channel added by someone who has paid is activated without waiting
+// for the owner (the payment is the approval). false: the owner activates every channel.
+export const AUTO_ACTIVATE_PAID = true;
+
+// Days before a channel's subscription ends when its managers get a renewal reminder.
+export const RENEW_REMINDER_DAYS = 3;
+
+// Subscription plans sold for Telegram Stars from the /start menu and the panel.
 export const PLANS = [
   { id: 'm1', months: 1, stars: 199, title: 'اشتراک یک‌ماهه' },
   { id: 'm3', months: 3, stars: 499, title: 'اشتراک سه‌ماهه' },

@@ -6,7 +6,8 @@
 import { api } from 'sdk';
 import { ADMIN_ID } from '../lib/config.js';
 import { upsertLikes, refreshButtons } from '../lib/likes.js';
-import { isActive, setStatus } from '../lib/channels.js';
+import { isActive, setStatus, getChannel } from '../lib/channels.js';
+import { applyCredits } from '../lib/billing.js';
 import { handleMenuCallback } from '../lib/menu.js';
 import { trackVote } from '../lib/botUsers.js';
 
@@ -14,7 +15,8 @@ async function channelAction(query, status, chatId) {
   if (query.from.id !== ADMIN_ID) {
     return api.answerCallbackQuery({ callback_query_id: query.id, text: 'فقط مالک ربات', show_alert: true });
   }
-  const channel = await setStatus(chatId, status);
+  let channel = await setStatus(chatId, status);
+  if (status === 'active' && (await applyCredits(channel))) channel = await getChannel(chatId);
   await api.answerCallbackQuery({ callback_query_id: query.id, text: status === 'active' ? 'فعال شد ✅' : 'رد شد' });
   if (query.message) {
     await api.editMessageText({

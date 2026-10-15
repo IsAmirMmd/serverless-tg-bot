@@ -15,8 +15,12 @@ export async function getChannel(chatId) {
   return db.get(sql`SELECT * FROM channels WHERE chat_id = ${String(chatId)}`);
 }
 
+// Served right now: activated, and its subscription (if any) not over.
+export const isLive = (channel) =>
+  channel?.status === 'active' && (channel.expires_at == null || channel.expires_at > Math.floor(Date.now() / 1000));
+
 export async function isActive(chatId) {
-  return (await getChannel(chatId))?.status === 'active';
+  return isLive(await getChannel(chatId));
 }
 
 // Records a channel from a Chat object; a new one starts as `pending`.

@@ -7,6 +7,7 @@ import { alertDialog, confirmDialog, shareLink } from '../lib/telegram.js';
 import DataTable from './DataTable.jsx';
 import Pagination from './Pagination.jsx';
 import { PostLink, UserCell } from './cells.jsx';
+import { subscriptionState } from './SubscriptionBar.jsx';
 
 const STATUS = {
   active: ['فعال', 'mz-badge--like'],
@@ -48,6 +49,15 @@ function ChannelsCard({ channels, loading, run, busy }) {
       await run('ownerSetChannelStatus', { channelId: c.chat_id, status });
     }
   };
+  // Gift time: +days, or null to remove the limit (a channel with a limit is a paid one).
+  const extend = async (c, days) => {
+    const what = days == null ? 'بدون محدودیت زمانی شود'
+      : c.expires_at == null ? `از «نامحدود» به اشتراک ${fa(days)} روزه تبدیل شود (بعدش باید تمدید شود)`
+        : `${fa(days)} روز به اشتراکش اضافه شود`;
+    if (await confirmDialog(`کانال «${c.title ?? c.chat_id}» ${what}؟`)) {
+      await run('ownerExtendChannel', { channelId: c.chat_id, days });
+    }
+  };
   const columns = [
     { key: 'title', title: 'کانال', className: 'mz-cell-nowrap', render: (c) => (
       <div className="cell-user">
@@ -56,19 +66,34 @@ function ChannelsCard({ channels, loading, run, busy }) {
       </div>
     ) },
     { key: 'status', title: 'وضعیت', render: (c) => <StatusBadge status={c.status} /> },
+    { key: 'sub', title: 'اشتراک', className: 'mz-cell-nowrap', render: (c) => {
+      const s = subscriptionState(c);
+      return c.expires_at == null ? <span className="mz-muted">نامحدود</span> : <span className={`mz-badge mz-badge--${s.tone}`}>{s.label}</span>;
+    } },
     { key: 'members', title: 'اعضا', className: 'mz-cell-num', render: (c) => fa(c.members) },
     { key: 'votes', title: 'رأی‌ها', className: 'mz-cell-num', render: (c) => fa(c.votes) },
     { key: 'added', title: 'اضافه‌کننده', className: 'mz-cell-num', render: (c) => faDigits(c.added_by ?? '—') },
-    { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (c) => (c.status === 'active'
-      ? <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => setStatus(c, 'paused')}>توقف</button>
-      : <button type="button" className="mz-btn mz-btn--sm mz-btn--primary" disabled={busy} onClick={() => setStatus(c, 'active')}>فعال‌سازی</button>) },
+    { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (c) => (
+      <div className="mz-row tag-row">
+        {c.status === 'active'
+          ? <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => setStatus(c, 'paused')}>توقف</button>
+          : <button type="button" className="mz-btn mz-btn--sm mz-btn--primary" disabled={busy} onClick={() => setStatus(c, 'active')}>فعال‌سازی</button>}
+        <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => extend(c, 30)}>
+          {c.expires_at == null ? 'اشتراکی کن (۳۰ روز)' : '+۳۰ روز'}
+        </button>
+        {c.expires_at != null && (
+          <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => extend(c, null)}>بدون محدودیت</button>
+        )}
+      </div>
+    ) },
   ];
   return (
     <section className="mz-stack">
       <h2 className="mz-subtitle">کانال‌ها</h2>
       <p className="mz-muted section-hint">
         هر کانالی که ربات را ادمین کند اینجا «در انتظار» می‌آید. تا فعالش نکنید، پست‌ها و رأی‌هایش پردازش نمی‌شوند.
-        با فعال‌سازی، کسی که ربات را اضافه کرده مدیر همان کانال می‌شود.
+        با فعال‌سازی، کسی که ربات را اضافه کرده مدیر همان کانال می‌شود. اگر او قبلاً پرداخت کرده باشد، کانال خودکار فعال می‌شود.
+        کانالی که اشتراکش تمام شود خودکار متوقف می‌شود. «نامحدود» یعنی تاریخ انقضا ندارد.
       </p>
       <DataTable columns={columns} rows={channels} loading={loading} rowKey={(c) => c.chat_id} skeletonRows={2} />
     </section>

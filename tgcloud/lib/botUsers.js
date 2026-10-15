@@ -66,7 +66,7 @@ export async function listBotUsers(input = {}) {
   const rows = await db.all(sql`
     SELECT u.*,
            (SELECT count(*) FROM channel_members m WHERE m.user_id = u.user_id) AS channels,
-           (SELECT coalesce(sum(stars), 0) FROM payments p WHERE p.user_id = u.user_id) AS stars
+           (SELECT coalesce(sum(stars), 0) FROM payments p WHERE p.user_id = u.user_id AND p.refunded_at IS NULL) AS stars
     FROM bot_users u ${where}
     ORDER BY u.first_seen_at DESC, u.user_id DESC
     LIMIT ${p.size} OFFSET ${p.offset}`);

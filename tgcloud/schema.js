@@ -32,6 +32,9 @@ export const channels = table('channels', {
   username:   text('username'),                           // public channels: t.me/<username>/<post>
   status:     text('status').notNull().default('pending'), // pending | active | paused
   added_by:   integer('added_by'),                        // who made the bot an admin; manager on activation
+  expires_at: integer('expires_at', { mode: 'timestamp' }), // paid until; null = no limit (owner-activated)
+  reminded_for: integer('reminded_for'),                  // expires_at value the renewal reminder was sent for
+  expired_for:  integer('expired_for'),                   // expires_at value the "expired" notice was sent for
   created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
   updated_at: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 });
@@ -67,8 +70,9 @@ export const bot_users = table('bot_users', {
   last_seen_at:  integer('last_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 });
 
-// Subscriptions bought with Telegram Stars (one row per payment). A user's
-// subscription runs until their latest period_end.
+// Subscriptions bought with Telegram Stars (one row per payment). A payment
+// extends one channel's expires_at; until the buyer has a channel it waits
+// as credit (channel_id null) and is applied when they add the bot.
 export const payments = table('payments', {
   id:         integer('id').primaryKey({ autoIncrement: true }),
   charge_id:  text('charge_id').notNull(),               // telegram_payment_charge_id (for refunds)
@@ -77,8 +81,10 @@ export const payments = table('payments', {
   plan:       text('plan').notNull(),                    // PLANS[].id
   months:     integer('months').notNull(),
   stars:      integer('stars').notNull(),
+  channel_id: text('channel_id'),                        // the channel it paid for; null = unused credit
   period_start: integer('period_start', { mode: 'timestamp' }).notNull(),
   period_end:   integer('period_end', { mode: 'timestamp' }).notNull(),
+  refunded_at:  integer('refunded_at', { mode: 'timestamp' }),
   created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 }, (t) => ({
   charge: uniqueIndex('uidx_payments_charge').on(t.charge_id),

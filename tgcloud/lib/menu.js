@@ -1,14 +1,13 @@
 // The /start menu (support / help / prices) and buying a plan with Telegram Stars.
 // Buttons use `style` (Bot API: 'primary' blue, 'success' green, 'danger' red).
-// Callback data: menu:home | menu:help | menu:prices | buy:<plan id>
+// Callback data: menu:home | menu:help | menu:prices | buy:<plan id>[:<chat id>]
+// Payments themselves are in billing.js.
 
-import { api, db } from 'sdk';
-import { sql } from 'sdk/db';
+import { api } from 'sdk';
 import { ADMIN_ID, CONTACT_USERNAME, PLANS, MINI_APP_URL } from './config.js';
-import { notify, isMember } from './channels.js';
-import { stamp } from './time.js';
+import { isMember, getChannel } from './channels.js';
+import { sendPlanInvoice, userChannels } from './billing.js';
 
-const DAY = 86400;
 const fa = (n) => Number(n).toLocaleString('fa-IR');
 const contactUrl = () => `https://t.me/${CONTACT_USERNAME.replace(/^@/, '')}`;
 
@@ -114,72 +113,38 @@ export async function handleMenuCallback(query) {
     return true;
   }
 
-  const buy = /^buy:(\w+)$/.exec(data);
+  // buy:<plan>             from the prices screen — asks for the channel when the buyer has several
+  // buy:<plan>:<chat id>   a specific channel (channel picker, renewal reminders)
+  const buy = /^buy:(\w+)(?::(-?\d+))?$/.exec(data);
   if (buy) {
     const plan = PLANS.find((p) => p.id === buy[1]);
-    await answer(query, plan ? undefined : 'این پلن دیگه موجود نیست');
-    if (plan) await sendPlanInvoice(query.from.id, plan);
+    if (!plan) {
+      await answer(query, 'این پلن دیگه موجود نیست');
+      return true;
+    }
+    await answer(query);
+    if (buy[2]) {
+      await sendPlanInvoice(query.from.id, plan, await getChannel(buy[2]));
+      return true;
+    }
+    const mine = await userChannels(query.from.id);
+    if (mine.length <= 1) {
+      // No channel yet: the payment waits as credit until they add the bot.
+      await sendPlanInvoice(query.from.id, plan, mine[0] ?? null);
+    } else if (message) {
+      await api.editMessageText({
+        chat_id: message.chat.id,
+        message_id: message.message_id,
+        text: `${plan.title} برای کدوم کانالت؟ 👇`,
+        reply_markup: { inline_keyboard: [
+          ...mine.map((c) => [{ text: `📢 ${c.title ?? c.chat_id}`, callback_data: `buy:${plan.id}:${c.chat_id}` }]),
+          [{ text: '🔙 برگشت', callback_data: 'menu:prices' }],
+        ] },
+      });
+    }
     return true;
   }
   return false;
-}
-
-// ---------- Stars payments ----------
-
-function sendPlanInvoice(chatId, plan) {
-  return api.sendInvoice({
-    chat_id: chatId,
-    title: plan.title,
-    description: `ربات لایک و آمار کانال موزیک، ${fa(plan.months)} ماه (${fa(plan.months * 30)} روز) ⭐️`,
-    payload: `plan:${plan.id}`,
-    provider_token: '',            // Telegram Stars
-    currency: 'XTR',
-    prices: [{ label: plan.title, amount: plan.stars }],
-  });
-}
-
-// The plan an invoice payload + amount stand for, or null if they don't match.
-export function planFor(payload, currency, amount) {
-  const id = /^plan:(\w+)$/.exec(payload ?? '')?.[1];
-  const plan = PLANS.find((p) => p.id === id);
-  return plan && currency === 'XTR' && amount === plan.stars ? plan : null;
-}
-
-// Last day of the user's subscription (unix seconds), or null.
-async function paidUntil(userId) {
-  const row = await db.get(sql`SELECT max(period_end) AS until FROM payments WHERE user_id = ${userId}`);
-  return row?.until ? Number(row.until) : null;
-}
-
-// message.successful_payment → record it, extend the user's period, thank them, tell the owner.
-export async function recordPayment(message) {
-  const p = message.successful_payment;
-  const user = message.from;
-  const plan = planFor(p.invoice_payload, p.currency, p.total_amount);
-  const now = Math.floor(Date.now() / 1000);
-  const start = Math.max(now, (await paidUntil(user.id)) ?? 0);
-  const end = start + (plan?.months ?? 1) * 30 * DAY;
-
-  await db.run(sql`
-    INSERT INTO payments (charge_id, user_id, user_name, plan, months, stars, period_start, period_end)
-    VALUES (${p.telegram_payment_charge_id}, ${user.id}, ${user.username ?? null},
-            ${plan?.id ?? p.invoice_payload}, ${plan?.months ?? 1}, ${p.total_amount}, ${start}, ${end})
-    ON CONFLICT (charge_id) DO NOTHING`);
-
-  await api.sendMessage({
-    chat_id: message.chat.id,
-    text:
-      `🎉 پرداختت انجام شد، مرسی!\n\n` +
-      `${plan?.title ?? 'اشتراک'} برات ثبت شد و تا ${stamp(new Date(end * 1000)).slice(0, 10)} اعتبار داره ⭐️\n\n` +
-      'قدم بعدی: ربات رو ادمین کانالت کن (ارسال، ویرایش و حذف پیام) تا فعالش کنیم.\n' +
-      `اگه سوالی بود، به ${CONTACT_USERNAME} پیام بده 💬`,
-    reply_markup: { inline_keyboard: [[supportButton]] },
-  });
-
-  const who = user.username ? `@${user.username}` : `${user.first_name ?? ''} (${user.id})`;
-  await notify(ADMIN_ID,
-    `💰 خرید جدید: ${who}\n${plan?.title ?? p.invoice_payload} — ${fa(p.total_amount)} استارز\n` +
-    `اعتبار تا ${stamp(new Date(end * 1000)).slice(0, 10)}\nشناسه پرداخت: ${p.telegram_payment_charge_id}`);
 }
 
 // /paysupport — payment questions go to the contact (Telegram asks bots that take payments to answer it).

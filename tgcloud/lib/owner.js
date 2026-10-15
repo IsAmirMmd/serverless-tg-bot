@@ -63,19 +63,24 @@ export async function revokeInvite(code) {
 export async function listPayments(input = {}) {
   const p = pageParams(input);
   const where = whereOf([
-    searchCondition(input.q, { names: ['user_name', 'charge_id'], ids: ['user_id'] }),
+    searchCondition(input.q, { names: ['p.user_name', 'p.charge_id'], ids: ['p.user_id'] }),
   ]);
-  const total = Number((await db.get(sql`SELECT count(*) AS n FROM payments ${where}`))?.n ?? 0);
+  const total = Number((await db.get(sql`SELECT count(*) AS n FROM payments p ${where}`))?.n ?? 0);
   const rows = await db.all(sql`
-    SELECT *, period_end > unixepoch() AS active FROM payments ${where}
-    ORDER BY created_at DESC, id DESC
+    SELECT p.*, c.title AS channel_title, c.expires_at AS channel_expires_at,
+           p.refunded_at IS NULL AND p.period_end > unixepoch() AS active
+    FROM payments p LEFT JOIN channels c ON c.chat_id = p.channel_id
+    ${where}
+    ORDER BY p.created_at DESC, p.id DESC
     LIMIT ${p.size} OFFSET ${p.offset}`);
+  // Totals leave refunded payments out; "active" = paid channels still running.
   const sums = await db.get(sql`
     SELECT count(*) AS payments,
            coalesce(sum(stars), 0) AS stars,
-           (SELECT count(DISTINCT user_id) FROM payments WHERE period_end > unixepoch()) AS active_users,
-           coalesce(sum(CASE WHEN created_at > unixepoch() - 30 * 86400 THEN stars END), 0) AS stars_30d
-    FROM payments`);
+           coalesce(sum(CASE WHEN created_at > unixepoch() - 30 * 86400 THEN stars END), 0) AS stars_30d,
+           (SELECT count(*) FROM channels WHERE status = 'active' AND expires_at > unixepoch()) AS active_users,
+           (SELECT count(*) FROM payments WHERE channel_id IS NULL AND refunded_at IS NULL) AS credits
+    FROM payments WHERE refunded_at IS NULL`);
   return {
     rows: rows.map((r) => ({ ...r, active: r.active === 1 })),
     page: p.page, size: p.size, total, pages: pages(total, p.size),

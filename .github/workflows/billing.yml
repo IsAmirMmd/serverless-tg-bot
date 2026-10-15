@@ -1,0 +1,34 @@
+# Daily subscription check: reminds channel managers a few days before their
+# subscription ends and tells them (and the owner) once it has. Expiry itself
+# needs no job — an expired channel stops being served on its own.
+# Telegram Serverless has no scheduler, so GitHub Actions runs /billing in the cloud.
+# Needs the repository secret TGCLOUD_TOKEN (BotFather → your bot → Serverless →
+# CLI Access → Access token).
+name: Billing check
+
+on:
+  schedule:
+    - cron: '30 6 * * *'   # 10:00 Tehran
+  workflow_dispatch: {}
+
+jobs:
+  billing:
+    runs-on: ubuntu-latest
+    env:
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.TGCLOUD_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.TGCLOUD_TOKEN != ''
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: env.TGCLOUD_TOKEN != ''
+      # `run` executes the local modules in the cloud, against the bot's real
+      # database and Bot API. The ids are ADMIN_ID from tgcloud/lib/config.js.
+      - if: env.TGCLOUD_TOKEN != ''
+        run: |
+          mkdir -p .tgcloud
+          npx tgcloud run handlers/message '{ text: "/billing", from: { id: 199419831 }, chat: { id: 199419831 } }'

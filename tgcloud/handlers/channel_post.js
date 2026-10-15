@@ -8,13 +8,13 @@ import { cleanMetadata } from '../lib/llm.js';
 import { basicMetadata } from '../lib/metadata.js';
 import { buildCaption } from '../lib/caption.js';
 import { likeKeyboard } from '../lib/likes.js';
-import { getChannel, saveChannel } from '../lib/channels.js';
+import { getChannel, saveChannel, isLive } from '../lib/channels.js';
 
 export default async function (post, ctx) {
-  // Only channels the owner activated are served. A channel the bot was in
-  // before my_chat_member was handled shows up here first: record it as pending.
+  // Only active channels with a running subscription are served. A channel the
+  // bot was in before my_chat_member was handled shows up here first: record it as pending.
   const channel = (await getChannel(post.chat.id)) ?? (await saveChannel(post.chat));
-  if (channel.status !== 'active') return;
+  if (!isLive(channel)) return;
 
   const audio = post.audio;
   if (!audio?.mime_type?.startsWith('audio/')) {

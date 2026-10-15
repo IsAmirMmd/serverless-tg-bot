@@ -9,6 +9,7 @@ import Pagination from './components/Pagination.jsx';
 import OwnerPanel from './components/OwnerPanel.jsx';
 import PaymentsPanel from './components/PaymentsPanel.jsx';
 import BotUsersPanel from './components/BotUsersPanel.jsx';
+import SubscriptionBar from './components/SubscriptionBar.jsx';
 
 const OWNER_TAB = 'manage';
 const PAYMENTS_TAB = 'payments';
@@ -174,6 +175,7 @@ export default function App() {
   if (!channelId) return null;
 
   const user = tg?.initDataUnsafe?.user;
+  const selected = channelId !== 'all' ? channels.find((c) => c.chat_id === channelId) : null;
   const showChannel = channelId === 'all' && (isOwner ? channels.length > 1 : true);
 
   return (
@@ -197,6 +199,14 @@ export default function App() {
       {!OWNER_TABS.includes(tab) && (
         <>
           <ChannelPicker channels={channels} value={channelId} onChange={setChannelId} allowAll={allowAll} />
+          {selected && (
+            <SubscriptionBar
+              key={selected.chat_id}
+              channel={selected}
+              plans={me.data?.plans}
+              onPaid={() => { setMeKey((k) => k + 1); setReloadKey((k) => k + 1); }}
+            />
+          )}
           {summary.error && <div className="mz-alert">{errorText(summary.error)}</div>}
           <StatTiles data={summary.loading ? null : summary.data} />
         </>
