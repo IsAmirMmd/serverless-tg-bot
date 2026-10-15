@@ -7,8 +7,11 @@
 
 **کار ربات:**
 
-- آهنگی که در کانال پست می‌شود، با عنوان و خواننده‌ای که LLM (از OpenRouter) تمیز کرده دوباره پست می‌شود.
+- آهنگی که در کانال پست می‌شود، با عنوان و خواننده‌ی تمیزشده دوباره پست می‌شود.
   کپشن یک ایموجی دارد و زیرش دکمه‌های ❤️ و 🥀 قرار می‌گیرد. پست اصلی پاک می‌شود.
+  تمیز کردن فعلاً **بدون هوش مصنوعی** است: لینک، @یوزرنیم، اسم سایت و تگ‌هایی مثل `(Official Audio)` و `320kbps` حذف می‌شوند
+  و ایموجی از یک لیست ثابت انتخاب می‌شود.
+  برای برگرداندن LLM (از OpenRouter)، در `tgcloud/lib/config.js` مقدار `USE_LLM` را `true` کنید.
 - با هر رأی، جدول `likes` به‌روز می‌شود و عددهای روی دکمه‌ها دوباره رسم می‌شوند.
 - برای ادمین گزارش اکسل و بکاپ CSV ساخته می‌شود و دستورهای ادمین در دسترس‌اند.
 
@@ -24,20 +27,23 @@ serverless-tg-bot/
 ├─ tgcloud/                  ← فقط همین پوشه روی تلگرام دیپلوی می‌شود
 │  ├─ schema.js              ← جدول‌های likes و settings
 │  ├─ handlers/              ← یک فایل برای هر نوع آپدیت تلگرام
-│  │  ├─ channel_post.js     ← پست جدید کانال: LLM، بازنشر، حذف پست اصلی
+│  │  ├─ channel_post.js     ← پست جدید کانال: تمیز کردن تگ‌ها، بازنشر، حذف پست اصلی
 │  │  ├─ callback_query.js   ← زدن دکمه‌ی ❤️/🥀
 │  │  └─ message.js          ← دستورهای ادمین در پیوی ربات
 │  └─ lib/
-│     ├─ config.js           ← ADMIN_ID، مدل LLM، منطقه‌ی زمانی و...
+│     ├─ config.js           ← ADMIN_ID، USE_LLM، منطقه‌ی زمانی و...
 │     ├─ likes.js            ← ذخیره‌ی رأی، شمارش، دکمه‌ها
-│     ├─ llm.js              ← OpenRouter
+│     ├─ metadata.js         ← تمیز کردن تگ‌ها بدون هوش مصنوعی (پیش‌فرض)
+│     ├─ llm.js              ← OpenRouter (فقط وقتی USE_LLM روشن است)
 │     ├─ admin.js            ← /report، /backup، /import، /setkey، لایک فیک
 │     ├─ report.js           ← ساخت ردیف‌های گزارش (همان Code nodeهای n8n)
 │     ├─ caption.js          ← کپشن MarkdownV2
 │     ├─ files.js            ← ساخت XLSX و CSV بدون پکیج npm
 │     ├─ settings.js
 │     └─ time.js
-├─ .github/workflows/backup.yml   ← جایگزین Schedule Trigger (هر ۸ ساعت)
+├─ .github/workflows/
+│  ├─ deploy.yml             ← دیپلوی خودکار با هر push به main
+│  └─ backup.yml             ← جایگزین Schedule Trigger (هر ۸ ساعت)
 ├─ tgcloud.jsonc             ← تنظیمات پروژه (برای Mini App؛ اینجا استفاده نمی‌شود)
 ├─ docs/  AGENTS.md          ← مستندات؛ دیپلوی نمی‌شوند
 └─ .tgcloud/                 ← وضعیت محلی CLI و توکن (در .gitignore؛ دست نزنید)
@@ -88,6 +94,30 @@ npx tgcloud run handlers/message '{ text: "/report", from: { id: 199419831 }, ch
 خروجی `console.log`ها در همین `run` نمایش داده می‌شود.
 برای CI (مثلاً GitHub Actions) به‌جای `login` متغیر `TGCLOUD_TOKEN` را ست کنید.
 
+### به‌روز نگه داشتن ربات بعد از هر تغییر
+
+**خودکار (پیشنهادی):** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) با هر push به `main` که فایل‌های `tgcloud/` را تغییر دهد،
+ربات را دیپلوی می‌کند. پس فقط کافی است تغییرات را در `main` مرج یا push کنید.
+این workflow به‌ترتیب این کارها را می‌کند:
+
+- `tgcloud fetch`: آخرین نسخه‌ی روی ابر را می‌گیرد.
+- `tgcloud push`: فقط فایل‌های تغییرکرده را می‌فرستد.
+- `tgcloud migrate --safe`: جدول، ستون و ایندکس جدید را اعمال می‌کند.
+
+پیش‌نیازش همان secret ‏`TGCLOUD_TOKEN` است (چک‌لیست بخش ۳). نتیجه‌ی هر دیپلوی در تب **Actions** دیده می‌شود.
+
+- `main` منبع اصلی است: ماژولی که فقط روی ابر باشد و در `main` نباشد پاک می‌شود. پس تغییری را که مستقیم با `push` از کامپیوترتان فرستاده‌اید حتماً به `main` هم ببرید.
+- تغییراتی که داده پاک می‌کنند (`.deprecated(...)`) خودکار اعمال نمی‌شوند. آن‌ها را دستی با `npx tgcloud migrate` اعمال کنید.
+
+**دستی (از کامپیوتر خودتان):**
+
+```sh
+git pull
+npx tgcloud status     # چه چیزی عوض شده
+npx tgcloud push       # دیپلوی کد
+npx tgcloud migrate    # فقط اگر tgcloud/schema.js تغییر کرده
+```
+
 ---
 
 ## ۲. دیتابیس
@@ -98,7 +128,7 @@ npx tgcloud run handlers/message '{ text: "/report", from: { id: 199419831 }, ch
 - **`likes`:** جایگزین Data Table «Likes» در n8n، با همان ستون‌ها:
   `user_id`، `liked`، `music_id`، `user_name`، `channel_id`، `music_name` به‌علاوه‌ی `created_at` و `updated_at`.
   روی `(music_id, user_id)` ایندکس یکتا دارد، پس هر کاربر برای هر آهنگ یک رأی دارد.
-- **`settings`:** جفت‌های کلید و مقدار، فعلاً فقط برای کلید API سرویس OpenRouter.
+- **`settings`:** جفت‌های کلید و مقدار، فعلاً فقط برای کلید API سرویس OpenRouter (وقتی `USE_LLM` روشن است).
 
 ```js
 import { db } from 'sdk';
@@ -129,7 +159,7 @@ push تغییرات دیتابیس را فقط **گزارش** می‌دهد. ب�
 | ورک‌فلوی n8n | اینجا |
 |---|---|
 | Telegram Bot (Trigger: channel_post, callback_query, message) | سه فایل در `tgcloud/handlers/` |
-| Check Message Type1 → Basic LLM Chain + OpenRouter + Structured Output Parser (autoFix) → Send Lyrics Reply → Delete main music | `handlers/channel_post.js` + `lib/llm.js` + `lib/caption.js` |
+| Check Message Type1 → Basic LLM Chain + OpenRouter + Structured Output Parser (autoFix) → Send Lyrics Reply → Delete main music | `handlers/channel_post.js` + `lib/caption.js`؛ تمیز کردن تگ‌ها با `lib/metadata.js` (پیش‌فرض) یا `lib/llm.js` (وقتی `USE_LLM` روشن است) |
 | Send Not Audio File، Send a text message («Error on LLM») | `handlers/channel_post.js` |
 | check call back → Upsert row(s) → Get All Likes For Music → Calculate Counts → HTTP Request (editMessageReplyMarkup)، HTTP Request1 (answerCallbackQuery) | `handlers/callback_query.js` + `lib/likes.js` |
 | Check Message Type (`/report`) → Get All Likes → Build (Music) Report Data → Convert to Excel → Send Report Document | `/report` → `lib/admin.js` + `lib/report.js` + `lib/files.js` |
@@ -146,7 +176,7 @@ push تغییرات دیتابیس را فقط **گزارش** می‌دهد. ب�
 | `/report` | دو فایل اکسل: گزارش کاربرها و گزارش آهنگ‌ها |
 | `/backup` | بکاپ CSV از کل جدول `likes` |
 | `liked 123 10` / `disliked 123 10` | اضافه کردن ۱۰ رأی فیک به پستی با message_id برابر 123 |
-| `/setkey <key>` | ذخیره‌ی کلید OpenRouter در دیتابیس؛ پیام حاوی کلید پاک می‌شود |
+| `/setkey <key>` | ذخیره‌ی کلید OpenRouter در دیتابیس؛ پیام حاوی کلید پاک می‌شود (فقط برای `USE_LLM`) |
 | فایل CSV با کپشن `/import` | وارد کردن بکاپ (از n8n یا `/backup`). رأی‌هایی که از قبل در جدول هستند دست نمی‌خورند. channel_idهای خراب (مثل `-1.0018E+12`، `0` یا خالی) دور ریخته می‌شوند و با اولین رأی روی هر پست، channel_id واقعی ثبت می‌شود. |
 
 ### تفاوت‌ها با نسخه‌ی n8n
@@ -158,10 +188,11 @@ push تغییرات دیتابیس را فقط **گزارش** می‌دهد. ب�
   `setLocale("en-IR")` در n8n منطقه‌ی زمانی را عوض نمی‌کرد و ساعت سرور n8n استفاده می‌شد.
   برای تغییر: `UTC_OFFSET_MINUTES` در `lib/config.js`.
 - **کاراکترهای خاص کپشن (MarkdownV2) escape می‌شوند.** در n8n عنوانی که بک‌تیک داشت ارسال را خراب می‌کرد.
-- **متن خطای LLM** هم در پیام «Error on LLM» برای ادمین فرستاده می‌شود.
+- **LLM به‌صورت پیش‌فرض خاموش است.** تگ‌ها با قواعد ساده تمیز می‌شوند و ایموجی از یک لیست ثابت می‌آید. خطای LLM هم وجود ندارد.
+  وقتی `USE_LLM` روشن باشد، متن خطا هم در پیام «Error on LLM» برای ادمین فرستاده می‌شود.
 - در «Send Not Audio File»، `reply_to_message_id` حذف شد. آن شناسه مال پیامی در کانال بود و در چت ادمین معنا نداشت.
 - **لایک فیک برای آهنگی که هیچ رأیی ندارد** (پس کانالش معلوم نیست) با پیام خطا متوقف می‌شود و ردیف خراب در جدول نمی‌سازد.
-- **بدون تغییر ماند:** اگر LLM خطا بدهد، پست اصلی **باز هم پاک می‌شود** و دوباره پست نمی‌شود، دقیقاً مثل n8n.
+- **بدون تغییر ماند (وقتی `USE_LLM` روشن است):** اگر LLM خطا بدهد، پست اصلی **باز هم پاک می‌شود** و دوباره پست نمی‌شود، دقیقاً مثل n8n.
   اگر نمی‌خواهید آهنگ از دست برود، در `handlers/channel_post.js` خط `deleteMessage` را از بلوک `catch` بردارید.
 
 ### چک‌لیست راه‌اندازی (به همین ترتیب)
@@ -170,10 +201,10 @@ push تغییرات دیتابیس را فقط **گزارش** می‌دهد. ب�
    اگر این کار را بعد از push انجام دهید، وبهوک tgcloud پاک می‌شود. در آن صورت `npx tgcloud webhook sync` بزنید.
 2. آخرین بکاپ CSV را از n8n بگیرید: آخرین فایل «Likes table backup» در تلگرام، یا export مستقیم از Data Table.
 3. بخش ۱ را انجام دهید: `login`، `push` و `migrate`.
-4. از اکانت ادمین در پیوی ربات `/setkey <OpenRouter API key>` بفرستید.
+4. فقط اگر `USE_LLM` را روشن کرده‌اید: از اکانت ادمین در پیوی ربات `/setkey <OpenRouter API key>` بفرستید.
 5. فایل CSV بکاپ را با کپشن `/import` برای ربات بفرستید. بدون این کار، شمارش رأی‌های پست‌های قدیمی از صفر شروع می‌شود.
 6. یک آهنگ در کانال پست کنید و دکمه‌ها را امتحان کنید. بعد `/report` را تست کنید.
-7. برای بکاپ خودکار: در GitHub ریپو به **Settings → Secrets and variables → Actions** بروید
+7. برای دیپلوی و بکاپ خودکار: در GitHub ریپو به **Settings → Secrets and variables → Actions** بروید
    و `TGCLOUD_TOKEN` را (همان توکن CLI) اضافه کنید.
    برای تست، از تب Actions گزینه‌ی «Likes backup» را دستی اجرا کنید (Run workflow).
 8. توکن ربات در فایل JSON ورک‌فلوی n8n به‌صورت متن ساده نوشته شده بود.
