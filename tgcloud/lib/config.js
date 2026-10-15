@@ -7,6 +7,9 @@ export const ADMIN_ID = 199419831;
 
 export const SIGNATURE = '@isAmirMmd';
 
+// Who people should message about the bot — shown in the /start welcome.
+export const CONTACT_USERNAME = SIGNATURE;
+
 // The admin Mini App (index.html + src/), deployed by `npm run update`.
 export const MINI_APP_URL = 'https://app8735554979.tgcloud.ai/';
 
