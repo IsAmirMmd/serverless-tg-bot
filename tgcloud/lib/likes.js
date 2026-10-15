@@ -43,9 +43,11 @@ export async function allLikes() {
   return db.select().from(likes).orderBy(asc(likes.id)).all();
 }
 
-// Any row of a music, to find out its channel and name.
+// A row of a music, to find out its channel and name. Prefers a row that
+// knows the channel: imported rows may not.
 export async function findMusic(musicId) {
-  return db.select().from(likes).where(eq(likes.music_id, musicId)).get();
+  const rows = await db.select().from(likes).where(eq(likes.music_id, musicId)).all();
+  return rows.find((r) => r.channel_id) ?? rows[0] ?? null;
 }
 
 export async function countLikes(musicId) {

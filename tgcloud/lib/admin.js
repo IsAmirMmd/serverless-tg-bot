@@ -65,7 +65,9 @@ function channelChatId(channelId) {
 export async function addFakeLikes({ liked, musicId, count }) {
   if (count > MAX_FAKE_LIKES) return tell(`At most ${MAX_FAKE_LIKES} at a time.`);
   const music = await findMusic(musicId);
-  if (!music?.channel_id) return tell(`No votes on music ${musicId} yet, so its channel is unknown.`);
+  if (!music?.channel_id) {
+    return tell(`The channel of music ${musicId} is unknown. Vote on the post once, then try again.`);
+  }
 
   const rows = [];
   for (let i = 0; i < count; i++) {
@@ -84,6 +86,9 @@ export async function addFakeLikes({ liked, musicId, count }) {
 }
 
 const toInt = (v) => (/^-?\d+$/.test(String(v).trim()) ? Number(v) : null);
+// Backups written by n8n carry channel ids like "-1.0018E+12" (precision lost),
+// "0" or "" — keep only whole ids. The next vote on a post records its real id.
+const toChannelId = (v) => (/^-?\d+$/.test(String(v).trim()) && Number(v) !== 0 ? String(v).trim() : null);
 const toBool = (v) => (/^(true|1)$/i.test(String(v).trim()) ? true : /^(false|0)$/i.test(String(v).trim()) ? false : null);
 
 // A CSV document with caption /import — e.g. a "Likes_Backup" file the n8n
@@ -98,7 +103,7 @@ export async function importLikes(document) {
       liked: toBool(r.liked),
       music_id: toInt(r.music_id),
       user_name: r.user_name || null,
-      channel_id: r.channel_id || null,
+      channel_id: toChannelId(r.channel_id),
       music_name: r.music_name || null,
     };
     if (row.user_id != null && row.music_id != null && row.liked != null) rows.push(row);
