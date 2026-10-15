@@ -6,7 +6,7 @@ import { api } from 'sdk';
 import { ADMIN_ID, SIGNATURE } from '../lib/config.js';
 import { sendWelcome, recordPayment, sendPaySupport } from '../lib/menu.js';
 import {
-  sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel,
+  sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel, setCommands,
 } from '../lib/admin.js';
 import { redeemInvite, isMember, notify, panelKeyboard } from '../lib/channels.js';
 
@@ -15,6 +15,7 @@ function adminCommand(message, text) {
   if (text === '/report') return sendReports();
   if (text === '/backup') return sendBackup();
   if (text === '/panel') return sendPanel();
+  if (text === '/setcommands') return setCommands();
   // The file itself, or a forwarded file this message replies to; optional channel id.
   const imp = /^\/import(?:\s+(-?\d+))?$/.exec(text);
   if (imp) return importLikes(message.document ?? message.reply_to_message?.document, imp[1] ?? null);

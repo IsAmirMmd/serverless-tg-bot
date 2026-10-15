@@ -38,6 +38,22 @@ export async function sendReports() {
   );
 }
 
+// /setcommands — the list Telegram suggests after typing "/": just /start for
+// everyone; the owner's own chat also lists the admin commands.
+export async function setCommands() {
+  await api.setMyCommands({ commands: [{ command: 'start', description: 'شروع و منوی ربات' }] });
+  await api.setMyCommands({
+    scope: { type: 'chat', chat_id: ADMIN_ID },
+    commands: [
+      { command: 'start', description: 'شروع و منوی ربات' },
+      { command: 'panel', description: 'پنل آمار' },
+      { command: 'report', description: 'گزارش اکسل' },
+      { command: 'backup', description: 'بکاپ CSV' },
+    ],
+  });
+  await tell('Commands updated ✅');
+}
+
 // /panel — opens the panel Mini App, for the owner or a channel member. The
 // menu button is set for that user's chat only, so other users never see it.
 export async function sendPanel(chatId = ADMIN_ID) {
