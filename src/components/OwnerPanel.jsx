@@ -63,7 +63,7 @@ function ChannelsCard({ channels, loading, run, busy }) {
     } },
     { key: 'members', title: 'اعضا', className: 'mz-cell-num', render: (c) => fa(c.members) },
     { key: 'votes', title: 'رأی‌ها', className: 'mz-cell-num', render: (c) => fa(c.votes) },
-    { key: 'added', title: 'اضافه‌کننده', className: 'mz-cell-num', render: (c) => faDigits(c.added_by ?? '—') },
+    { key: 'added', title: 'اضافه‌کننده', className: 'mz-cell-num', hideOnMobile: true, render: (c) => faDigits(c.added_by ?? '—') },
     { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (c) => (c.status === 'active'
       ? <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => setStatus(c, 'paused')}>توقف</button>
       : <button type="button" className="mz-btn mz-btn--sm mz-btn--primary" disabled={busy} onClick={() => setStatus(c, 'active')}>فعال‌سازی</button>) },
@@ -279,7 +279,7 @@ function GiftCard({ channels, reloadKey, run, busy }) {
             loading={false}
             columns={[
               { key: 'days', title: 'هدیه', className: 'mz-cell-num', render: (g) => `${fa(g.days)} روز` },
-              { key: 'code', title: 'کد', className: 'mz-cell-num', render: (g) => <code dir="ltr">{g.code}</code> },
+              { key: 'code', title: 'کد', className: 'mz-cell-num', hideOnMobile: true, render: (g) => <code dir="ltr">{g.code}</code> },
               { key: 'exp', title: 'لینک تا', className: 'mz-cell-num', render: (g) => faDate(g.expires_at) },
               { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (g) => (
                 <div className="mz-row tag-row">
@@ -407,7 +407,7 @@ function InvitesCard({ reloadKey, run, busy }) {
   const columns = [
     { key: 'channel', title: 'کانال', className: 'mz-cell-nowrap', render: (i) => i.channel_title ?? i.channel_id },
     { key: 'role', title: 'نقش', render: (i) => ROLES[i.role] ?? i.role },
-    { key: 'code', title: 'کد', className: 'mz-cell-num', render: (i) => <code dir="ltr">{i.code}</code> },
+    { key: 'code', title: 'کد', className: 'mz-cell-num', hideOnMobile: true, render: (i) => <code dir="ltr">{i.code}</code> },
     { key: 'expires', title: 'انقضا', className: 'mz-cell-num', render: (i) => faDate(i.expires_at) },
     { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (i) => (
       <div className="mz-row">

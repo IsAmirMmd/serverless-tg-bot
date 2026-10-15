@@ -89,6 +89,11 @@ body {
 .mz-stack { display: flex; flex-direction: column; gap: var(--mz-s4); }
 .mz-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mz-s2); }
 .mz-title { font-weight: 900; font-size: var(--mz-fs-xl); line-height: 1.4; margin: 0; }
+@media (max-width: 640px) {
+  .mz-container { padding: var(--mz-s3); }
+  .mz-title { font-size: 20px; }
+  .mz-card { padding: var(--mz-s3); }
+}
 .mz-subtitle { font-weight: 700; font-size: var(--mz-fs-lg); margin: 0; }
 
 /* ---------- card ---------- */
@@ -112,6 +117,12 @@ body {
 .mz-stat__value { font-size: var(--mz-fs-xl); font-weight: 900; font-variant-numeric: tabular-nums; }
 .mz-stat--coral { background: var(--mz-coral-soft); }
 .mz-stat--green { background: var(--mz-green-soft); }
+@media (max-width: 640px) {
+  .mz-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--mz-s2); }
+  .mz-stats > .mz-stat:last-child:nth-child(odd) { grid-column: 1 / -1; } /* odd count: last tile spans the row */
+  .mz-stat { padding: var(--mz-s2) var(--mz-s3); border-radius: 16px; }
+  .mz-stat__value { font-size: var(--mz-fs-lg); line-height: 1.5; }
+}
 
 /* ---------- buttons ---------- */
 .mz-btn {
@@ -142,6 +153,12 @@ body {
   border-radius: var(--mz-r-ctl); background: transparent; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .mz-tab[aria-selected="true"] { background: var(--mz-paper); border-color: var(--mz-ink); box-shadow: 0 3px 0 var(--mz-ink); }
+.mz-tabs { scroll-snap-type: x proximity; scrollbar-width: none; }
+.mz-tabs::-webkit-scrollbar { display: none; }
+.mz-tab { scroll-snap-align: start; }
+@media (max-width: 640px) {
+  .mz-tab { flex: 0 0 auto; min-height: 38px; padding: 2px 12px; font-size: 14px; }
+}
 
 /* ---------- chips ---------- */
 .mz-chip {
@@ -154,6 +171,7 @@ body {
 .mz-input, .mz-select {
   min-height: 44px; padding: 6px 14px; width: 100%;
   background: var(--mz-paper); border: var(--mz-border); border-radius: var(--mz-r-ctl);
+  font-size: 16px; /* below 16px iOS Safari zooms the page on focus */
 }
 .mz-input::placeholder { color: var(--mz-muted); }
 .mz-select { width: auto; padding-inline-end: 32px; }
@@ -185,9 +203,46 @@ body {
 .mz-table .mz-cell-wrap { min-width: 200px; max-width: 420px; }
 .mz-table .mz-cell-nowrap { white-space: nowrap; }
 
+/* Phones: rows become cards, each cell "label … value". Needs .mz-table--cards on
+   the table, .mz-table-wrap--cards on its wrapper and data-label="<column title>"
+   on every <td>. A .mz-cell-wrap cell stacks its label above long values. */
+@media (max-width: 640px) {
+  .mz-table-wrap--cards { background: transparent; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }
+  .mz-table--cards thead { display: none; }
+  .mz-table--cards, .mz-table--cards tbody, .mz-table--cards tr, .mz-table--cards td { display: block; width: 100%; }
+  .mz-table--cards tr {
+    background: var(--mz-paper); border: var(--mz-border); border-radius: var(--mz-r-card);
+    box-shadow: var(--mz-shadow); margin-bottom: var(--mz-s3); padding: 2px 0; overflow: hidden;
+  }
+  .mz-table--cards tbody tr:hover td { background: transparent; }
+  .mz-table--cards td {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--mz-s3);
+    padding: 9px 14px; border-bottom: 1px solid var(--mz-line); min-width: 0; max-width: none;
+  }
+  .mz-table--cards tr td:last-child { border-bottom: 0; }
+  .mz-table--cards td::before {
+    content: attr(data-label); flex: none; font-size: var(--mz-fs-sm); font-weight: 700; color: var(--mz-muted);
+  }
+  .mz-table--cards td:not([data-label])::before, .mz-table--cards td[data-label=""]::before { display: none; }
+  .mz-table--cards td > * { min-width: 0; text-align: end; }
+  .mz-table--cards td.mz-cell-wrap { flex-direction: column; align-items: stretch; gap: 4px; }
+  .mz-table--cards td.mz-cell-wrap > * { text-align: start; }
+  .mz-table--cards td.mz-cell-nowrap, .mz-table--cards td.mz-cell-num { white-space: normal; }
+  .mz-table--cards td[colspan] { display: block; }
+  .mz-table--cards td.mz-hide-mobile { display: none; } /* minor columns stay on desktop only */
+  .mz-table--cards td:empty { display: none; }          /* e.g. an action cell with nothing to do */
+}
+
 /* ---------- pagination ---------- */
 .mz-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--mz-s3); }
-.mz-pagination__info { color: var(--mz-muted); font-size: var(--mz-fs-sm); }
+.mz-pagination__nav { display: flex; align-items: center; gap: var(--mz-s2); flex: 1 1 auto; justify-content: space-between; }
+.mz-pagination__info { color: var(--mz-muted); font-size: var(--mz-fs-sm); text-align: center; line-height: 1.5; }
+.mz-pagination__info b { display: block; color: var(--mz-ink); font-weight: 700; }
+@media (max-width: 640px) {
+  .mz-pagination__edge { display: none; } /* first/last: prev/next and the page size are enough on a phone */
+  .mz-pagination { justify-content: center; }
+  .mz-pagination__nav { flex-basis: 100%; }
+}
 
 /* ---------- links ---------- */
 .mz-link {

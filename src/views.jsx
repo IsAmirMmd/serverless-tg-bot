@@ -15,7 +15,7 @@ export const VIEWS = {
     filters: true,
     rowKey: (r) => r.id,
     columns: [
-      { key: 'id', title: '#', className: 'mz-cell-num', render: (r) => faDigits(r.id) },
+      { key: 'id', title: '#', className: 'mz-cell-num', hideOnMobile: true, render: (r) => faDigits(r.id) },
       { key: 'user', title: 'کاربر', className: 'mz-cell-nowrap', render: (r) => <UserCell name={r.user_name} id={r.user_id} /> },
       { key: 'music', title: 'آهنگ', className: 'mz-cell-wrap', render: (r) => <MusicCell name={r.music_name} id={r.music_id} url={r.music_url} /> },
       { key: 'vote', title: 'رأی', render: (r) => <VoteBadge liked={r.liked} /> },

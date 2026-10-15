@@ -84,7 +84,7 @@ export default function PaymentsPanel({ reloadKey }) {
     { key: 'paid', title: 'تاریخ خرید', className: 'mz-cell-num', render: (r) => faDate(r.created_at) },
     { key: 'until', title: 'دوره', className: 'mz-cell-num', render: (r) => (r.channel_id && r.plan !== 'unlimited' ? `${faDate(r.period_start)} تا ${faDate(r.period_end)}` : '—') },
     { key: 'status', title: 'وضعیت', className: 'mz-cell-nowrap', render: (r) => <StatusBadge r={r} /> },
-    { key: 'charge', title: 'شناسه پرداخت', className: 'mz-cell-num', render: (r) => <code dir="ltr" className="charge-id">{r.charge_id}</code> },
+    { key: 'charge', title: 'شناسه پرداخت', className: 'mz-cell-num', hideOnMobile: true, render: (r) => <code dir="ltr" className="charge-id">{r.charge_id}</code> },
     { key: 'actions', title: '', render: (r) => (r.refunded_at || !r.stars ? null : (
       <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => refund(r)}>↩️ برگشت</button>
     )) },

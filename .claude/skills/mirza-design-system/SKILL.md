@@ -23,6 +23,13 @@ Taken from mirzaplugin.ir in October 2026: the theme CSS variables (`main.css`, 
 3. Build with the classes below. Don't invent new colors; take them from the `--mz-*` tokens. New components need the same language: 2px ink border, hard shadow, the radius scale.
 4. Numbers and dates: `n.toLocaleString('fa-IR')` and `new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'medium', timeStyle: 'short' })`. Use `.mz-num` for tabular digits.
 5. Use logical CSS properties (`margin-inline-start`, `text-align: start`), never left/right, so RTL stays correct.
+6. **Mobile first.** Most users are on phones. At ≤ 640px:
+   - Tables turn into cards (see the table below).
+   - Stat tiles go two per row, and an odd last tile spans the full row.
+   - Tabs scroll sideways.
+   - Inputs are 16px, so iOS doesn't zoom on focus.
+
+   Check every page at 375px wide before shipping. The React `DataTable` in this repo (`src/components/DataTable.jsx`) already sets the card classes and `data-label`, and takes `hideOnMobile` per column.
 
 ## Components
 
@@ -38,7 +45,8 @@ Taken from mirzaplugin.ir in October 2026: the theme CSS variables (`main.css`, 
 | `.mz-input`, `.mz-select` | text field, select |
 | `.mz-badge`, `--like`, `--dislike`, `--neutral` | status pills |
 | `.mz-table-wrap` > `table.mz-table` (`.mz-cell-num`, `.mz-cell-wrap`, `.mz-cell-nowrap`) | data table; the wrapper scrolls sideways on phones, sticky sand header |
-| `.mz-pagination` (`__info`) | prev/next + "page x of y" row |
+| `.mz-table-wrap--cards` > `table.mz-table--cards`, `td[data-label]`, `.mz-hide-mobile` | **on phones (≤ 640px) every row becomes a card**: "column title … value"; `.mz-cell-wrap` cells stack the label above long values; `.mz-hide-mobile` drops minor columns; empty cells vanish |
+| `.mz-pagination` > `.mz-pagination__nav` (`__edge` for first/last, `__info` with `<b>page x of y</b>` + total) | pagination; on phones first/last hide and prev · page · next share one row |
 | `.mz-link` | coral-ink underlined link (t.me posts etc.) |
 | `.mz-empty`, `.mz-alert` (`--success`), `.mz-skeleton` | empty, error and loading states |
 

@@ -35,10 +35,10 @@ const COLUMNS = [
   ) },
   { key: 'starts', title: '🚀 استارت', className: 'mz-cell-num', render: (r) => fa(r.start_count) },
   { key: 'votes', title: '❤️ رأی', className: 'mz-cell-num', render: (r) => fa(r.vote_count) },
-  { key: 'lang', title: 'زبان', className: 'mz-cell-num', render: (r) => r.language_code ?? '—' },
+  { key: 'lang', title: 'زبان', className: 'mz-cell-num', hideOnMobile: true, render: (r) => r.language_code ?? '—' },
   { key: 'first', title: 'اولین حضور', className: 'mz-cell-num', render: (r) => faDate(r.first_seen_at) },
   { key: 'last', title: 'آخرین فعالیت', className: 'mz-cell-num', render: (r) => faDate(r.last_seen_at) },
-  { key: 'param', title: 'ورود از', className: 'mz-cell-num', render: (r) => (r.start_param ? <code dir="ltr">{r.start_param}</code> : '—') },
+  { key: 'param', title: 'ورود از', className: 'mz-cell-num', hideOnMobile: true, render: (r) => (r.start_param ? <code dir="ltr">{r.start_param}</code> : '—') },
 ];
 
 // Search box value, debounced before it reaches the query.
