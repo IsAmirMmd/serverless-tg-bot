@@ -9,7 +9,14 @@ import DataTable from './DataTable.jsx';
 import Pagination from './Pagination.jsx';
 import { UserCell } from './cells.jsx';
 
-const PLAN_LABEL = { m1: 'یک‌ماهه', m3: 'سه‌ماهه' };
+const PLAN_LABEL = { m1: 'یک‌ماهه', m3: 'سه‌ماهه', unlimited: '🎁 نامحدود' };
+const planLabel = (r) => (r.plan === 'gift' ? `🎁 هدیه ${fa(r.days)} روزه` : PLAN_LABEL[r.plan] ?? `${fa(r.months)} ماهه`);
+
+const KINDS = [
+  { id: 'all', label: 'همه' },
+  { id: 'paid', label: '⭐️ پولی' },
+  { id: 'gift', label: '🎁 هدیه' },
+];
 
 const TILES = [
   ['stars', 'کل درآمد (استارز)', 'mz-stat--green'],
@@ -21,6 +28,7 @@ const TILES = [
 function StatusBadge({ r }) {
   if (r.refunded_at) return <span className="mz-badge mz-badge--neutral">برگشت‌خورده</span>;
   if (!r.channel_id) return <span className="mz-badge mz-badge--neutral">منتظر اضافه کردن کانال</span>;
+  if (r.plan === 'unlimited') return <span className="mz-badge mz-badge--like">نامحدود شد</span>;
   return r.active
     ? <span className="mz-badge mz-badge--like">فعال</span>
     : <span className="mz-badge mz-badge--dislike">تمام‌شده</span>;
@@ -38,14 +46,15 @@ function useDebounced(value, ms = 350) {
 
 export default function PaymentsPanel({ reloadKey }) {
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
   const [refreshKey, setRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const q = useDebounced(search.trim());
-  useEffect(() => setPage(1), [q, size]);
+  useEffect(() => setPage(1), [q, size, kind]);
 
-  const { data, loading, error } = useEndpoint('ownerPayments', { page, size, q, reloadKey, refreshKey });
+  const { data, loading, error } = useEndpoint('ownerPayments', { page, size, q, kind, reloadKey, refreshKey });
   const s = data?.summary;
 
   const refund = async (r) => {
@@ -68,13 +77,15 @@ export default function PaymentsPanel({ reloadKey }) {
   const columns = [
     { key: 'user', title: 'خریدار', className: 'mz-cell-nowrap', render: (r) => <UserCell name={r.user_name} id={r.user_id} /> },
     { key: 'channel', title: 'کانال', className: 'mz-cell-nowrap', render: (r) => r.channel_title ?? (r.channel_id ? r.channel_id : <span className="mz-muted">—</span>) },
-    { key: 'plan', title: 'پلن', render: (r) => <span className="mz-badge mz-badge--neutral">{PLAN_LABEL[r.plan] ?? `${fa(r.months)} ماهه`}</span> },
-    { key: 'stars', title: '⭐️ استارز', className: 'mz-cell-num', render: (r) => <strong className={r.refunded_at ? 'struck' : ''}>{fa(r.stars)}</strong> },
+    { key: 'plan', title: 'پلن', className: 'mz-cell-nowrap', render: (r) => <span className="mz-badge mz-badge--neutral">{planLabel(r)}</span> },
+    { key: 'stars', title: '⭐️ استارز', className: 'mz-cell-num', render: (r) => (r.stars
+      ? <strong className={r.refunded_at ? 'struck' : ''}>{fa(r.stars)}</strong>
+      : <span className="mz-muted">رایگان</span>) },
     { key: 'paid', title: 'تاریخ خرید', className: 'mz-cell-num', render: (r) => faDate(r.created_at) },
-    { key: 'until', title: 'دوره', className: 'mz-cell-num', render: (r) => (r.channel_id ? `${faDate(r.period_start)} تا ${faDate(r.period_end)}` : '—') },
+    { key: 'until', title: 'دوره', className: 'mz-cell-num', render: (r) => (r.channel_id && r.plan !== 'unlimited' ? `${faDate(r.period_start)} تا ${faDate(r.period_end)}` : '—') },
     { key: 'status', title: 'وضعیت', className: 'mz-cell-nowrap', render: (r) => <StatusBadge r={r} /> },
     { key: 'charge', title: 'شناسه پرداخت', className: 'mz-cell-num', render: (r) => <code dir="ltr" className="charge-id">{r.charge_id}</code> },
-    { key: 'actions', title: '', render: (r) => (r.refunded_at ? null : (
+    { key: 'actions', title: '', render: (r) => (r.refunded_at || !r.stars ? null : (
       <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => refund(r)}>↩️ برگشت</button>
     )) },
   ];
@@ -90,18 +101,27 @@ export default function PaymentsPanel({ reloadKey }) {
         ))}
       </section>
 
-      <input
-        className="mz-input"
-        type="search"
-        autoComplete="off"
-        placeholder="جستجوی نام کاربری، شناسه کاربر یا شناسه پرداخت…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="mz-row toolbar">
+        <input
+          className="mz-input"
+          type="search"
+          autoComplete="off"
+          placeholder="جستجوی نام کاربری، شناسه کاربر یا شناسه پرداخت…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="mz-row">
+          {KINDS.map((k) => (
+            <button key={k.id} type="button" className="mz-chip" aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>
+              {k.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {error && <div className="mz-alert">{error.type === 'ENDPOINT_ERROR' ? error.message : `خطا (${error.type ?? error.message})`}</div>}
 
-      {!loading && !error && data?.total === 0 && !q
+      {!loading && !error && data?.total === 0 && !q && kind === 'all'
         ? <div className="mz-card mz-empty">هنوز خریدی انجام نشده ⭐️</div>
         : (
           <>

@@ -31,6 +31,10 @@
 .by-id[open] summary { margin-bottom: var(--mz-s3); }
 .mz-table code { font-size: var(--mz-fs-xs); }
 .form-row .count-input { flex: 0 0 96px; text-align: center; }
+.form-row .field .mz-input { flex: none; }
+.days-field { flex: 0 0 110px; }
+.days-field .mz-input { text-align: center; }
+.gift-link { border-top: 1px dashed var(--mz-line-strong); padding-top: var(--mz-s4); }
 .struck { text-decoration: line-through; color: var(--mz-muted); }
 .subscription { display: flex; flex-direction: column; gap: var(--mz-s3); }
 .subscription__head { justify-content: space-between; }

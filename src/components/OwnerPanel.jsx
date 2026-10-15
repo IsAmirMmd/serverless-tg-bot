@@ -49,15 +49,6 @@ function ChannelsCard({ channels, loading, run, busy }) {
       await run('ownerSetChannelStatus', { channelId: c.chat_id, status });
     }
   };
-  // Gift time: +days, or null to remove the limit (a channel with a limit is a paid one).
-  const extend = async (c, days) => {
-    const what = days == null ? 'بدون محدودیت زمانی شود'
-      : c.expires_at == null ? `از «نامحدود» به اشتراک ${fa(days)} روزه تبدیل شود (بعدش باید تمدید شود)`
-        : `${fa(days)} روز به اشتراکش اضافه شود`;
-    if (await confirmDialog(`کانال «${c.title ?? c.chat_id}» ${what}؟`)) {
-      await run('ownerExtendChannel', { channelId: c.chat_id, days });
-    }
-  };
   const columns = [
     { key: 'title', title: 'کانال', className: 'mz-cell-nowrap', render: (c) => (
       <div className="cell-user">
@@ -73,19 +64,9 @@ function ChannelsCard({ channels, loading, run, busy }) {
     { key: 'members', title: 'اعضا', className: 'mz-cell-num', render: (c) => fa(c.members) },
     { key: 'votes', title: 'رأی‌ها', className: 'mz-cell-num', render: (c) => fa(c.votes) },
     { key: 'added', title: 'اضافه‌کننده', className: 'mz-cell-num', render: (c) => faDigits(c.added_by ?? '—') },
-    { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (c) => (
-      <div className="mz-row tag-row">
-        {c.status === 'active'
-          ? <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => setStatus(c, 'paused')}>توقف</button>
-          : <button type="button" className="mz-btn mz-btn--sm mz-btn--primary" disabled={busy} onClick={() => setStatus(c, 'active')}>فعال‌سازی</button>}
-        <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => extend(c, 30)}>
-          {c.expires_at == null ? 'اشتراکی کن (۳۰ روز)' : '+۳۰ روز'}
-        </button>
-        {c.expires_at != null && (
-          <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => extend(c, null)}>بدون محدودیت</button>
-        )}
-      </div>
-    ) },
+    { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (c) => (c.status === 'active'
+      ? <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => setStatus(c, 'paused')}>توقف</button>
+      : <button type="button" className="mz-btn mz-btn--sm mz-btn--primary" disabled={busy} onClick={() => setStatus(c, 'active')}>فعال‌سازی</button>) },
   ];
   return (
     <section className="mz-stack">
@@ -186,6 +167,130 @@ function NewMemberCard({ channels, run, busy }) {
           <button type="button" className="mz-btn" disabled={busy || !userId || !channelId} onClick={addById}>افزودن</button>
         </div>
       </details>
+    </section>
+  );
+}
+
+// Free subscription time: straight onto a channel (any number of days, or no
+// limit), or as a one-time gift link for someone who has no channel yet.
+// Every gift is recorded in the payments tab with 0 Stars.
+function GiftCard({ channels, reloadKey, run, busy }) {
+  const [channelId, setChannelId] = useState('');
+  const [days, setDays] = useState('30');
+  const [linkDays, setLinkDays] = useState('30');
+  const [created, setCreated] = useState(null);
+  const codes = useEndpoint('ownerGiftCodes', { reloadKey });
+
+  useEffect(() => {
+    if (!channelId && channels.length) setChannelId(channels[0].chat_id);
+  }, [channels, channelId]);
+
+  const channel = channels.find((c) => c.chat_id === channelId);
+  const n = Number(days);
+
+  const extend = async (unlimited) => {
+    if (!channel) return;
+    const what = unlimited ? 'بدون محدودیت زمانی شود'
+      : channel.expires_at == null ? `از «نامحدود» به اشتراک ${fa(n)} روزه تبدیل شود (بعدش باید تمدید شود)`
+        : `${fa(n)} روز رایگان به اشتراکش اضافه شود`;
+    if (await confirmDialog(`کانال «${channel.title ?? channel.chat_id}» ${what}؟`)) {
+      await run('ownerExtendChannel', { channelId: channel.chat_id, days: unlimited ? null : n });
+    }
+  };
+
+  const createLink = async () => {
+    const result = await run('ownerCreateGift', { days: Number(linkDays) });
+    if (result) setCreated(result);
+  };
+
+  const revoke = async (g) => {
+    if (await confirmDialog('این لینک هدیه باطل شود؟')) await run('ownerRevokeGift', { code: g.code });
+  };
+
+  const daysInput = (value, set, label) => (
+    <label className="field days-field">
+      <span className="field__label">{label}</span>
+      <input
+        className="mz-input mz-num"
+        inputMode="numeric"
+        dir="ltr"
+        value={value}
+        onChange={(e) => set(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+      />
+    </label>
+  );
+
+  return (
+    <section className="mz-card mz-stack">
+      <h2 className="mz-subtitle">🎁 اشتراک هدیه</h2>
+      <p className="mz-muted section-hint">همه‌ی هدیه‌ها با مبلغ صفر در تب «پرداخت‌ها» ثبت می‌شوند.</p>
+
+      {channels.length > 0 && (
+        <div className="mz-stack">
+          <strong>روی یک کانال</strong>
+          <div className="mz-row form-row">
+            <label className="field">
+              <span className="field__label">کانال</span>
+              <select className="mz-select" value={channelId} onChange={(e) => setChannelId(e.target.value)}>
+                {channels.map((c) => (
+                  <option key={c.chat_id} value={c.chat_id}>
+                    {c.title ?? c.chat_id} — {c.expires_at == null ? 'نامحدود' : subscriptionState(c).label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {daysInput(days, setDays, 'روز')}
+          </div>
+          <div className="mz-row">
+            <button type="button" className="mz-btn mz-btn--primary" disabled={busy || !channel || !(n >= 1 && n <= 3650)} onClick={() => extend(false)}>
+              {channel?.expires_at == null ? `اشتراکی کن (${fa(n || 0)} روز)` : `+ ${fa(n || 0)} روز`}
+            </button>
+            {channel?.expires_at != null && (
+              <button type="button" className="mz-btn" disabled={busy} onClick={() => extend(true)}>بدون محدودیت</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mz-stack gift-link">
+        <strong>لینک هدیه</strong>
+        <p className="mz-muted section-hint">
+          برای کسی که هنوز کانال ندارد: لینک را بفرستید؛ با باز کردنش هدیه برایش ذخیره می‌شود و روی اولین کانالی که ربات را در آن ادمین کند فعال می‌شود. یک‌بارمصرف، اعتبار ۳۰ روز.
+        </p>
+        <div className="mz-row form-row">
+          {daysInput(linkDays, setLinkDays, 'روز هدیه')}
+          <button type="button" className="mz-btn mz-btn--primary" disabled={busy || !(Number(linkDays) >= 1)} onClick={createLink}>
+            🔗 ساخت لینک هدیه
+          </button>
+        </div>
+        {created && (
+          <div className="mz-alert mz-alert--success mz-stack">
+            <input className="mz-input mz-num" readOnly value={created.link} dir="ltr" onFocus={(e) => e.target.select()} />
+            <div className="mz-row">
+              <button type="button" className="mz-btn mz-btn--sm" onClick={() => shareLink(created.link, `🎁 ${fa(created.days)} روز اشتراک رایگان ربات لایک کانال`)}>ارسال در تلگرام</button>
+              <span className="mz-muted section-hint">{fa(created.days)} روز، لینک تا {faDate(created.expires_at)}</span>
+            </div>
+          </div>
+        )}
+        {(codes.data?.rows ?? []).length > 0 && (
+          <DataTable
+            rowKey={(g) => g.code}
+            rows={codes.data.rows}
+            loading={false}
+            columns={[
+              { key: 'days', title: 'هدیه', className: 'mz-cell-num', render: (g) => `${fa(g.days)} روز` },
+              { key: 'code', title: 'کد', className: 'mz-cell-num', render: (g) => <code dir="ltr">{g.code}</code> },
+              { key: 'exp', title: 'لینک تا', className: 'mz-cell-num', render: (g) => faDate(g.expires_at) },
+              { key: 'actions', title: '', className: 'mz-cell-nowrap', render: (g) => (
+                <div className="mz-row tag-row">
+                  <button type="button" className="mz-btn mz-btn--sm" onClick={() => shareLink(g.link)}>ارسال</button>
+                  <button type="button" className="mz-btn mz-btn--sm" disabled={busy} onClick={() => revoke(g)}>باطل</button>
+                </div>
+              ) },
+            ]}
+          />
+        )}
+      </div>
     </section>
   );
 }
@@ -334,6 +439,7 @@ export default function OwnerPanel({ onChannelsChanged }) {
       {error && <div className="mz-alert">{errorText(error)}</div>}
       <ChannelsCard channels={channels} loading={loading && !data} run={run} busy={busy} />
       <NewMemberCard channels={channels} run={run} busy={busy} />
+      <GiftCard channels={channels} reloadKey={reloadKey} run={run} busy={busy} />
       <FakeVotesCard run={run} busy={busy} />
       <MembersCard channels={channels} reloadKey={reloadKey} run={run} busy={busy} />
       <InvitesCard reloadKey={reloadKey} run={run} busy={busy} />

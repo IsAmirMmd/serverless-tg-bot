@@ -133,7 +133,7 @@ export async function removeMember(channelId, userId) {
 
 const INVITE_DAYS = 7;
 
-function randomCode() {
+export function randomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);

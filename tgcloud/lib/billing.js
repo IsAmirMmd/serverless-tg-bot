@@ -9,7 +9,7 @@
 import { api, db } from 'sdk';
 import { sql } from 'sdk/db';
 import { ADMIN_ID, PLANS, CONTACT_USERNAME, AUTO_ACTIVATE_PAID, RENEW_REMINDER_DAYS } from './config.js';
-import { getChannel, addMember, notify, panelKeyboard } from './channels.js';
+import { getChannel, addMember, notify, panelKeyboard, randomCode, getBotUsername } from './channels.js';
 import { stamp } from './time.js';
 
 const DAY = 86400;
@@ -86,16 +86,81 @@ async function extend(channel, seconds) {
   return { start: base, end };
 }
 
-// Owner gift: +days, or days = null for no limit.
+// Length a payment row buys: gifts carry days, paid plans months.
+const lengthOf = (p) => (p.days != null ? p.days * DAY : p.months * MONTH);
+
+// A 0-Star payments row for an owner gift, so gifts show up next to sales.
+async function recordGift({ userId, userName = null, channelId = null, days, unlimited = false, start, end }) {
+  await db.run(sql`
+    INSERT INTO payments (charge_id, user_id, user_name, plan, months, days, stars, channel_id, period_start, period_end)
+    VALUES (${`gift:${randomCode()}`}, ${userId}, ${userName}, ${unlimited ? 'unlimited' : 'gift'}, 0,
+            ${unlimited ? null : days}, 0, ${channelId}, ${start}, ${end})`);
+}
+
+// Owner gift on an existing channel: +days, or days = null for no limit.
+// Recorded against whoever added the bot to it (the owner if unknown).
 export async function extendChannel(chatId, days) {
   const channel = await getChannel(chatId);
   if (!channel) return null;
+  const userId = channel.added_by ?? ADMIN_ID;
   if (days == null) {
     await db.run(sql`UPDATE channels SET expires_at = NULL, updated_at = unixepoch() WHERE chat_id = ${channel.chat_id}`);
+    await recordGift({ userId, channelId: channel.chat_id, unlimited: true, start: now(), end: now() });
   } else {
-    await extend(channel, days * DAY);
+    const { start, end } = await extend(channel, days * DAY);
+    await recordGift({ userId, channelId: channel.chat_id, days, start, end });
   }
   return getChannel(chatId);
+}
+
+// ---------- gift links ----------
+
+const GIFT_LINK_DAYS = 30; // how long an unused gift link keeps working
+
+export async function createGiftCode(days, createdBy) {
+  const code = randomCode();
+  const expiresAt = now() + GIFT_LINK_DAYS * DAY;
+  await db.run(sql`
+    INSERT INTO gift_codes (code, days, created_by, expires_at) VALUES (${code}, ${days}, ${createdBy}, ${expiresAt})`);
+  return { code, days, link: `https://t.me/${await getBotUsername()}?start=gift_${code}`, expires_at: expiresAt };
+}
+
+export async function listGiftCodes() {
+  const rows = await db.all(sql`
+    SELECT * FROM gift_codes
+    WHERE used_by IS NULL AND revoked = 0 AND (expires_at IS NULL OR expires_at > unixepoch())
+    ORDER BY created_at DESC LIMIT 50`);
+  const username = await getBotUsername();
+  return rows.map((r) => ({ ...r, revoked: false, link: `https://t.me/${username}?start=gift_${r.code}` }));
+}
+
+export async function revokeGiftCode(code) {
+  await db.run(sql`UPDATE gift_codes SET revoked = 1 WHERE code = ${String(code)}`);
+}
+
+// /start gift_<code> → the gift becomes credit for `user` and, if they already
+// have exactly one channel, goes onto it right away.
+// → { ok, days, channel? } or { ok: false, reason }
+export async function redeemGift(code, user) {
+  const gift = await db.get(sql`SELECT * FROM gift_codes WHERE code = ${code}`);
+  if (!gift || gift.revoked) return { ok: false, reason: 'این لینک هدیه معتبر نیست.' };
+  if (gift.used_by) return { ok: false, reason: gift.used_by === user.id ? 'این هدیه قبلاً برات ثبت شده 😉' : 'این لینک هدیه قبلاً استفاده شده است.' };
+  if (gift.expires_at && gift.expires_at < now()) return { ok: false, reason: 'این لینک هدیه منقضی شده است.' };
+
+  await db.run(sql`UPDATE gift_codes SET used_by = ${user.id}, used_at = unixepoch() WHERE code = ${code} AND used_by IS NULL`);
+
+  const mine = await userChannels(user.id);
+  let channel = mine.length === 1 ? mine[0] : null;
+  let start = now();
+  let end = start + gift.days * DAY;
+  if (channel) ({ start, end } = await extend(channel, gift.days * DAY));
+  await recordGift({ userId: user.id, userName: user.username ?? null, channelId: channel?.chat_id ?? null, days: gift.days, start, end });
+  if (channel) channel = await activatePaid(channel, user.id);
+
+  const who = user.username ? `@${user.username}` : `${user.first_name ?? ''} (${user.id})`;
+  await notify(ADMIN_ID, `🎁 ${who} هدیه ${fa(gift.days)} روزه را دریافت کرد` +
+    (channel ? ` (کانال ${channelName(channel)} تا ${faDay(end)})` : ' (هنوز کانالی ندارد؛ اعتبار ذخیره شد)'));
+  return { ok: true, days: gift.days, channel, end };
 }
 
 // A paid channel: active (if allowed) and its buyer a manager.
@@ -116,7 +181,7 @@ export async function applyCredits(channel) {
     ORDER BY created_at`);
   for (const p of credits) {
     const fresh = await getChannel(channel.chat_id);
-    const { start, end } = await extend(fresh, p.months * MONTH);
+    const { start, end } = await extend(fresh, lengthOf(p));
     await db.run(sql`
       UPDATE payments SET channel_id = ${channel.chat_id}, period_start = ${start}, period_end = ${end} WHERE id = ${p.id}`);
   }
@@ -184,6 +249,7 @@ export async function refundPayment(paymentId) {
   const p = await db.get(sql`SELECT * FROM payments WHERE id = ${paymentId}`);
   if (!p) return { error: 'پرداخت پیدا نشد' };
   if (p.refunded_at) return { error: 'این پرداخت قبلاً برگشت خورده است' };
+  if (!p.stars) return { error: 'هدیه برگشت ندارد' };
 
   await api.refundStarPayment({ user_id: p.user_id, telegram_payment_charge_id: p.charge_id });
   await db.run(sql`UPDATE payments SET refunded_at = unixepoch() WHERE id = ${p.id}`);

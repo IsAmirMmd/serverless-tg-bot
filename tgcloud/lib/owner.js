@@ -63,6 +63,7 @@ export async function revokeInvite(code) {
 export async function listPayments(input = {}) {
   const p = pageParams(input);
   const where = whereOf([
+    input.kind === 'paid' ? sql`p.stars > 0` : input.kind === 'gift' ? sql`p.stars = 0` : null,
     searchCondition(input.q, { names: ['p.user_name', 'p.charge_id'], ids: ['p.user_id'] }),
   ]);
   const total = Number((await db.get(sql`SELECT count(*) AS n FROM payments p ${where}`))?.n ?? 0);

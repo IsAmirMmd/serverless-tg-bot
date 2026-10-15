@@ -78,8 +78,9 @@ export const payments = table('payments', {
   charge_id:  text('charge_id').notNull(),               // telegram_payment_charge_id (for refunds)
   user_id:    integer('user_id').notNull(),
   user_name:  text('user_name'),
-  plan:       text('plan').notNull(),                    // PLANS[].id
-  months:     integer('months').notNull(),
+  plan:       text('plan').notNull(),                    // PLANS[].id | 'gift' | 'unlimited' (owner gifts, 0 Stars)
+  months:     integer('months').notNull(),               // paid plans; 0 for gifts
+  days:       integer('days'),                           // gifts: length in days (null for paid plans: months × 30)
   stars:      integer('stars').notNull(),
   channel_id: text('channel_id'),                        // the channel it paid for; null = unused credit
   period_start: integer('period_start', { mode: 'timestamp' }).notNull(),
@@ -89,6 +90,19 @@ export const payments = table('payments', {
 }, (t) => ({
   charge: uniqueIndex('uidx_payments_charge').on(t.charge_id),
 }));
+
+// One-time gift links: t.me/<bot>?start=gift_<code> → `days` of free
+// subscription for whoever opens it (applied like paid credit).
+export const gift_codes = table('gift_codes', {
+  code:       text('code').primaryKey(),
+  days:       integer('days').notNull(),
+  created_by: integer('created_by').notNull(),
+  used_by:    integer('used_by'),
+  used_at:    integer('used_at', { mode: 'timestamp' }),
+  revoked:    boolean('revoked').notNull().default(false),
+  expires_at: integer('expires_at', { mode: 'timestamp' }),   // the link itself stops working after this
+  created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+});
 
 // One-time invite links: t.me/<bot>?start=inv_<code> → a channel_members row.
 export const invites = table('invites', {

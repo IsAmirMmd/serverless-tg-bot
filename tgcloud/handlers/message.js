@@ -5,7 +5,9 @@
 import { api } from 'sdk';
 import { ADMIN_ID } from '../lib/config.js';
 import { sendWelcome, sendPaySupport } from '../lib/menu.js';
-import { recordPayment, billingCheck } from '../lib/billing.js';
+import { recordPayment, billingCheck, redeemGift, faDay } from '../lib/billing.js';
+
+const faNum = (n) => Number(n).toLocaleString('fa-IR');
 import { trackStart } from '../lib/botUsers.js';
 import {
   sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel, setCommands,
@@ -27,6 +29,26 @@ function adminCommand(message, text) {
   const fake = parseFakeCommand(text);
   if (fake) return addFakeLikes(fake);
   return null;
+}
+
+// /start gift_<code> from a gift link the owner made in the panel.
+async function acceptGift(message, code) {
+  const r = await redeemGift(code, message.from);
+  if (!r.ok) {
+    await api.sendMessage({ chat_id: message.chat.id, text: `⛔️ ${r.reason}` });
+    return;
+  }
+  const text = r.channel
+    ? `🎁 هدیه داری! ${faNum(r.days)} روز اشتراک رایگان روی کانال «${r.channel.title ?? r.channel.chat_id}» ثبت شد ` +
+      `و تا ${faDay(r.end)} اعتبار داره ⭐️`
+    : `🎁 هدیه داری! ${faNum(r.days)} روز اشتراک رایگان برات ذخیره شد ⭐️\n\n` +
+      'قدم بعدی: ربات رو ادمین کانالت کن (ارسال، ویرایش و حذف پیام). ' +
+      'به‌محض اینکه اضافه‌ش کنی، هدیه‌ت روی همون کانال فعال میشه.';
+  await api.sendMessage({
+    chat_id: message.chat.id,
+    text,
+    reply_markup: r.channel && r.channel.status === 'active' ? panelKeyboard() : undefined,
+  });
 }
 
 // /start inv_<code> from an invite link the owner made in the panel.
@@ -57,6 +79,8 @@ export default async function (message, ctx) {
 
   const invite = /^\/start\s+inv_([A-Za-z0-9]+)$/.exec(text);
   if (invite && message.chat.type === 'private') return acceptInvite(message, invite[1]);
+  const gift = /^\/start\s+gift_([A-Za-z0-9]+)$/.exec(text);
+  if (gift && message.chat.type === 'private') return acceptGift(message, gift[1]);
 
   if (fromId === ADMIN_ID) {
     const command = adminCommand(message, text);
