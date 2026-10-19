@@ -67,6 +67,16 @@ export async function isMember(userId) {
   return Boolean(await db.get(sql`SELECT 1 AS x FROM channel_members WHERE user_id = ${userId} LIMIT 1`));
 }
 
+// May change things for the channel (not just see its stats): the owner,
+// whoever added the bot, or a member with the manager role.
+export async function isManager(userId, channel) {
+  if (!userId || !channel) return false;
+  if (userId === ADMIN_ID || channel.added_by === userId) return true;
+  return Boolean(await db.get(sql`
+    SELECT 1 AS x FROM channel_members
+    WHERE channel_id = ${String(channel.chat_id)} AND user_id = ${userId} AND role = 'manager'`));
+}
+
 // Shows the Mini App button in this user's chat only. Fails (403) if the user
 // never started the bot — reported to the caller, not thrown.
 export async function enablePanelButton(userId) {

@@ -5,6 +5,7 @@
 import { db } from 'sdk';
 import { sql } from 'sdk/db';
 import { postBase } from './channels.js';
+import { isFake, isTeam, isReal } from './voteClass.js';
 
 const toInt = (v, fallback) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : fallback);
 
@@ -95,15 +96,19 @@ const MUSICS_SORT = {
   name: 'lower(music_name)',
 };
 
-// Totals for the stat tiles.
+// Totals for the stat tiles, with the votes split into real / team / fake (voteClass.js).
 export async function summary(scope) {
   const row = await db.get(sql`
     SELECT count(*) AS votes,
            coalesce(sum(liked = 1), 0) AS likes,
            coalesce(sum(liked = 0), 0) AS dislikes,
            count(DISTINCT user_id) AS users,
-           count(DISTINCT channel_id || ':' || music_id) AS musics
-    FROM likes ${whereOf([scopeCondition(scope)])}`);
+           count(DISTINCT channel_id || ':' || music_id) AS musics,
+           coalesce(sum(${isReal('l')}), 0) AS real_votes,
+           coalesce(sum(${isTeam('l')} AND l.user_id > 0), 0) AS team_votes,
+           coalesce(sum(${isFake('l')}), 0) AS fake_votes,
+           count(DISTINCT CASE WHEN ${isReal('l')} THEN l.user_id END) AS real_users
+    FROM likes l ${whereOf([scopeCondition(scope, 'l.channel_id')])}`);
   return Object.fromEntries(Object.entries(row ?? {}).map(([k, v]) => [k, Number(v ?? 0)]));
 }
 

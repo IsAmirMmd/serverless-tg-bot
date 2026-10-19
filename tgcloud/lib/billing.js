@@ -67,7 +67,7 @@ export async function userChannels(userId) {
 }
 
 // Who hears about a channel's subscription: whoever added the bot, and its managers.
-async function channelContacts(channel) {
+export async function channelContacts(channel) {
   const rows = await db.all(sql`
     SELECT user_id FROM channel_members WHERE channel_id = ${channel.chat_id} AND role = 'manager'`);
   const ids = new Set(rows.map((r) => r.user_id));

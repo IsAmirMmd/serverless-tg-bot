@@ -1,4 +1,4 @@
-import { table, integer, text, boolean, uniqueIndex, sql } from 'sdk/db';
+import { table, integer, text, boolean, uniqueIndex, index, sql } from 'sdk/db';
 
 // Database tables, as named exports. `npx tgcloud push` registers the schema;
 // `npx tgcloud migrate` applies the changes to the database.
@@ -34,6 +34,7 @@ export const channels = table('channels', {
   expires_at: integer('expires_at', { mode: 'timestamp' }), // paid until; null = no limit (owner-activated)
   reminded_for: integer('reminded_for'),                  // expires_at value the renewal reminder was sent for
   expired_for:  integer('expired_for'),                   // expires_at value the "expired" notice was sent for
+  growth_buttons: boolean('growth_buttons').default(true), // "my songs" / "send to a friend" row under posts (null = on)
   created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
   updated_at: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 });
@@ -53,6 +54,8 @@ export const channel_members = table('channel_members', {
 
 // Everyone who has started the bot or voted under a channel post (one row per
 // Telegram user), kept up to date on every /start and vote.
+// Columns added to an existing table are nullable, so `migrate --safe` (the
+// deploy workflow) always applies them.
 export const bot_users = table('bot_users', {
   user_id:       integer('user_id').primaryKey(),
   username:      text('username'),
@@ -67,6 +70,85 @@ export const bot_users = table('bot_users', {
   last_vote_at:  integer('last_vote_at', { mode: 'timestamp' }),
   first_seen_at: integer('first_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
   last_seen_at:  integer('last_seen_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+  blocked:       boolean('blocked').default(false),      // a message to them failed with 403 (null = no)
+  unsubscribed:  boolean('unsubscribed').default(false), // sent /stop: no owner messages (null = no)
+  pending_action: text('pending_action'),                           // 'req:<chat id>' — next text is a song request
+  pending_at:    integer('pending_at', { mode: 'timestamp' }),
+});
+
+// Every audio post the bot published, with what is not in the likes table:
+// when it went out and how many members the channel had then.
+export const posts = table('posts', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  channel_id: text('channel_id').notNull(),
+  music_id:   integer('music_id').notNull(),                // message_id of the bot's post
+  title:      text('title'),
+  performer:  text('performer'),
+  file_id:    text('file_id'),
+  duration:   integer('duration'),
+  members:    integer('members'),                          // channel member count when posted
+  posted_at:  integer('posted_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+}, (t) => ({
+  channelMusic: uniqueIndex('uidx_posts_channel_music').on(t.channel_id, t.music_id),
+}));
+
+// Channel invite links the bot made, so a join can be traced to where it came from.
+// kind: campaign (named by a manager) | ref (a listener's own link) | share (song
+// pages in the bot) | bot (the channel button in the bot).
+export const invite_links = table('invite_links', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  channel_id: text('channel_id').notNull(),
+  kind:       text('kind').notNull(),
+  name:       text('name').notNull(),                      // campaign name; 'ref:<user id>'; 'share'; 'bot'
+  url:        text('url').notNull(),
+  owner_id:   integer('owner_id'),                         // ref: the listener; campaign: who made it
+  revoked:    boolean('revoked').notNull().default(false),
+  created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+}, (t) => ({
+  channelKindName: uniqueIndex('uidx_invite_links_channel_kind_name').on(t.channel_id, t.kind, t.name),
+  url: uniqueIndex('uidx_invite_links_url').on(t.url),
+}));
+
+// Joins and leaves of channel members (chat_member updates), with the source
+// of the join: 'direct' | 'folder' | 'other' | 'link:<name>' | or an invite_links kind.
+export const member_events = table('member_events', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  channel_id: text('channel_id').notNull(),
+  user_id:    integer('user_id').notNull(),
+  event:      text('event').notNull(),                     // join | leave
+  source:     text('source').notNull().default('direct'),  // a leave keeps the source of the join before it
+  link_id:    integer('link_id'),                          // invite_links.id, when the join came through one
+  at:         integer('at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+}, (t) => ({
+  channelAt: index('idx_member_events_channel_at').on(t.channel_id, t.at),
+  channelUser: index('idx_member_events_channel_user').on(t.channel_id, t.user_id),
+}));
+
+// Songs listeners asked a channel to post (from the bot's "request a song" button).
+export const song_requests = table('song_requests', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  channel_id: text('channel_id').notNull(),
+  user_id:    integer('user_id').notNull(),
+  user_name:  text('user_name'),
+  text:       text('text').notNull(),
+  created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+}, (t) => ({
+  channelAt: index('idx_song_requests_channel_at').on(t.channel_id, t.created_at),
+}));
+
+// Owner messages to a segment of bot users, sent in batches from the panel.
+export const broadcasts = table('broadcasts', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  created_by: integer('created_by').notNull(),
+  segment:    text('segment').notNull(),                   // JSON: { channelId, activity, artist }
+  text:       text('text').notNull(),
+  total:      integer('total').notNull().default(0),       // audience size when created
+  sent:       integer('sent').notNull().default(0),
+  failed:     integer('failed').notNull().default(0),
+  cursor:     integer('cursor').notNull().default(0),      // last user_id handled (batches go by user_id)
+  status:     text('status').notNull().default('sending'), // sending | done
+  created_at: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+  finished_at: integer('finished_at', { mode: 'timestamp' }),
 });
 
 // Subscriptions bought with Telegram Stars (one row per payment). A payment

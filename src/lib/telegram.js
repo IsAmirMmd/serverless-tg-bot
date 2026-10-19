@@ -35,3 +35,13 @@ export function shareLink(url, text = '') {
   if (tg?.openTelegramLink) tg.openTelegramLink(share);
   else window.open(share, '_blank', 'noopener');
 }
+
+// Copies text, or shows it when the clipboard is not available (some Telegram clients).
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    await alertDialog('کپی شد');
+  } catch {
+    await alertDialog(text);
+  }
+}

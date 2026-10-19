@@ -7,8 +7,10 @@ import { ADMIN_ID, SIGNATURE, USE_LLM } from '../lib/config.js';
 import { cleanMetadata } from '../lib/llm.js';
 import { basicMetadata } from '../lib/metadata.js';
 import { buildCaption } from '../lib/caption.js';
-import { likeKeyboard } from '../lib/likes.js';
+import { likeKeyboard, refreshButtons } from '../lib/likes.js';
 import { getChannel, saveChannel, isLive } from '../lib/channels.js';
+import { recordPost } from '../lib/growth.js';
+import { growthOn } from '../lib/postButtons.js';
 
 export default async function (post, ctx) {
   // Only active channels with a running subscription are served. A channel the
@@ -40,7 +42,7 @@ export default async function (post, ctx) {
     }
   }
 
-  await api.sendAudio({
+  const sent = await api.sendAudio({
     chat_id: post.chat.id,
     audio: audio.file_id,
     caption: buildCaption(meta, audio.duration),
@@ -48,4 +50,14 @@ export default async function (post, ctx) {
     reply_markup: likeKeyboard(),
   });
   await api.deleteMessage({ chat_id: post.chat.id, message_id: post.message_id });
+
+  // For the stats; then the growth buttons, whose share link needs the new post's id.
+  await recordPost(post.chat.id, sent, meta);
+  if (growthOn(channel)) {
+    try {
+      await refreshButtons(post.chat.id, sent.message_id);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 }

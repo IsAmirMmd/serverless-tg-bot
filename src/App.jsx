@@ -11,11 +11,16 @@ import PaymentsPanel from './components/PaymentsPanel.jsx';
 import BotUsersPanel from './components/BotUsersPanel.jsx';
 import SubscriptionBar from './components/SubscriptionBar.jsx';
 import SortControl from './components/SortControl.jsx';
+import GrowthPanel from './components/GrowthPanel.jsx';
+import BroadcastPanel from './components/BroadcastPanel.jsx';
 
 const OWNER_TAB = 'manage';
 const PAYMENTS_TAB = 'payments';
 const BOT_USERS_TAB = 'botUsers';
-const OWNER_TABS = [OWNER_TAB, PAYMENTS_TAB, BOT_USERS_TAB];
+const BROADCAST_TAB = 'broadcast';
+const OWNER_TABS = [OWNER_TAB, PAYMENTS_TAB, BOT_USERS_TAB, BROADCAST_TAB];
+// One channel at a time, with the channel picker but not the vote tables.
+const GROWTH_TAB = 'growth';
 
 function errorText(e) {
   return e.type === 'ENDPOINT_ERROR' ? e.message : `خطا در دریافت اطلاعات (${e.type ?? e.message})`;
@@ -171,10 +176,12 @@ export default function App() {
 
   const tabItems = useMemo(() => [
     ...Object.entries(VIEWS).map(([id, v]) => ({ id, label: v.label })),
+    { id: GROWTH_TAB, label: 'رشد و بازاریابی' },
     ...(isOwner ? [
       { id: OWNER_TAB, label: 'کاربران و کانال‌ها' },
       { id: PAYMENTS_TAB, label: 'پرداخت‌ها' },
       { id: BOT_USERS_TAB, label: 'اعضای ربات' },
+      { id: BROADCAST_TAB, label: 'پیام به کاربران' },
     ] : []),
   ], [isOwner]);
 
@@ -227,8 +234,10 @@ export default function App() {
       {tab === OWNER_TAB && <OwnerPanel onChannelsChanged={() => setMeKey((k) => k + 1)} />}
       {tab === PAYMENTS_TAB && <PaymentsPanel reloadKey={reloadKey} />}
       {tab === BOT_USERS_TAB && <BotUsersPanel reloadKey={reloadKey} />}
+      {tab === BROADCAST_TAB && <BroadcastPanel channels={channels} reloadKey={reloadKey} />}
+      {tab === GROWTH_TAB && <GrowthPanel channelId={channelId} reloadKey={reloadKey} />}
       {/* key: a new tab starts with a fresh search, filter and page */}
-      {!OWNER_TABS.includes(tab) && (
+      {!OWNER_TABS.includes(tab) && tab !== GROWTH_TAB && (
         <TableView key={tab} tab={tab} channelId={channelId} showChannel={showChannel} reloadKey={reloadKey} />
       )}
     </main>

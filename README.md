@@ -34,6 +34,24 @@ to other channel owners with **Telegram Stars** subscriptions.
   - free gift time, given directly or through one-time gift links
 - **Bot members:** everyone who starts the bot or votes is recorded and listed in
   the panel.
+- **Growth & marketing** (per channel, in the panel's «رشد و بازاریابی» tab):
+  - **real vs team vs fake votes:** stats count the audience only; the owner, the
+    channel's managers and whoever added the bot are "team", made-up voters are "fake"
+  - **where members come from:** every join and leave is recorded (`chat_member`),
+    with its source: a named campaign invite link, a listener's personal link,
+    the bot, a folder, or directly. Each source shows how many stayed after 7 days
+  - **per-post engagement:** the member count at posting time, real ❤️ / 🥀, and
+    the share of members who voted; the best hour to post
+  - **weekly report** every Saturday to each channel's managers, with a ready
+    "top songs of the week" post they publish with one button
+  - **polls** in the channel and **song requests** from listeners
+- **Listener features in the bot:** a second row under each post — **🎧 my songs**
+  (their liked songs plus "you might also like", from what similar listeners liked,
+  always within that channel) and **📤 send to a friend** (opens the song in the
+  bot with a join button). Listeners get a **personal invite link** with a
+  leaderboard, and can **request a song**. Managers can turn the row off.
+- **Messages to users** (owner): to a segment of people who started the bot (by
+  channel, activity, or an artist they liked), sent in batches, with `/stop` to opt out.
 - **Friendly start menu:** colored buttons for support, a how-to guide and pricing.
 
 ## How it works
@@ -59,9 +77,12 @@ owner and the channel memberships before returning data.
 │  │  ├─ callback_query.js   ← vote buttons and menu buttons
 │  │  ├─ message.js          ← /start menu, invite and gift links, payments
 │  │  ├─ my_chat_member.js   ← bot added to or removed from a channel
+│  │  ├─ chat_member.js      ← someone joined or left a channel (growth stats)
 │  │  └─ pre_checkout_query.js ← final check before a Stars payment
 │  ├─ endpoints/             ← the Mini App's API (POST /api/<name>)
-│  └─ lib/                   ← shared logic: likes, channels, billing, access, menu …
+│  └─ lib/                   ← shared logic: likes, channels, billing, access, menu,
+│                               growth (stats, invite links), listener (bot DM),
+│                               weekly (report), broadcast, voteClass …
 ├─ index.html, src/          ← the Mini App (React + Vite), built into dist/
 ├─ scripts/sql.mjs           ← run SQL against the bot's database from the terminal
 ├─ .github/workflows/        ← deploy on push, scheduled backup and billing check
@@ -94,7 +115,9 @@ Requirements: Node.js 20.19+ or 22.12+ and a Telegram bot.
    npm run update        # build the Mini App, deploy, and apply database changes
    ```
 4. **Add the bot as an admin** of your channel, with permission to post, edit and
-   delete messages.
+   delete messages. Also give it **"Add subscribers" (invite users via link)** for
+   join tracking, campaign links and listeners' invite links.
+5. In the bot, send `/setcommands` once so `/weekly` shows up in your command list.
 
 The webhook is managed by the platform based on the files in `tgcloud/handlers/`,
 and it's refreshed on every deploy. `npx tgcloud webhook` shows its status.
@@ -130,6 +153,7 @@ Add the CLI token as the repository secret **`TGCLOUD_TOKEN`**
 | `deploy.yml` | every push to `main` that touches the bot or the Mini App | builds and deploys, applies safe schema changes |
 | `backup.yml` | every 8 hours | sends a CSV backup of all tables to the owner |
 | `billing.yml` | daily | renewal reminders and expiry notices |
+| `weekly.yml` | Saturdays, 09:00 Tehran | weekly report and "top songs" draft to each channel's managers |
 
 `main` is the source of truth. A deploy removes code that exists only in the cloud.
 Schema changes that drop data are never applied automatically; run `npm run update`

@@ -6,6 +6,9 @@ const TILES = [
   ['dislikes', 'دیس‌لایک', 'mz-stat--coral'],
   ['users', 'کاربران'],
   ['musics', 'آهنگ‌ها'],
+  // Real = not the channel's team, not fake (tgcloud/lib/voteClass.js).
+  ['real_votes', 'رأی واقعی', 'mz-stat--green'],
+  ['fake_votes', 'رأی فیک'],
 ];
 
 export default function StatTiles({ data }) {
