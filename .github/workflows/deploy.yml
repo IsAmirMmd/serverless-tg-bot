@@ -40,12 +40,25 @@ jobs:
       # fetch: learn the cloud's current revision, so push sends only the changes
       # (a fresh checkout has no .tgcloud/ snapshot). main is the source of truth:
       # modules that exist only in the cloud are deleted.
-      # migrate --safe: apply added tables/columns/indexes; anything that drops
-      # data is skipped and must be applied by hand with `npm run update`.
       - name: Deploy
         if: env.TGCLOUD_TOKEN != ''
         run: |
           mkdir -p .tgcloud
           npx tgcloud fetch
           npx tgcloud push
+      # migrate --safe: apply added tables/columns/indexes; anything that drops
+      # data is skipped and must be applied by hand with `npm run update`.
+      # Its own step, run even when push failed: push can fail after the code is
+      # already deployed (the CLI crashed writing its local snapshot), and the
+      # schema must not stay behind the code. It diffs against the deployed schema.js.
+      - name: Migrate
+        if: always() && env.TGCLOUD_TOKEN != ''
+        run: |
+          mkdir -p .tgcloud
           npx tgcloud migrate --safe
+      # On failure: the modules the server returned as `false` instead of source
+      # (what made the CLI's snapshot write crash). Names only, not contents.
+      - name: Diagnose
+        if: failure() && env.TGCLOUD_TOKEN != ''
+        run: |
+          TGCLOUD_DEBUG=1 npx tgcloud fetch 2>&1 | grep -oE '"[A-Za-z0-9_./-]+": ?(false|null|true|[0-9]+)[,}]' | sort -u || true
