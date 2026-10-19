@@ -56,6 +56,15 @@ jobs:
         run: |
           mkdir -p .tgcloud
           npx tgcloud migrate --safe
+      # The update types the bot receives come from tgcloud/handlers/ (e.g.
+      # chat_member for join tracking). push refreshes them, but a push that
+      # failed half way may not have. Sync is idempotent, keeps pending updates,
+      # and prints what the webhook now receives.
+      - name: Webhook
+        if: always() && env.TGCLOUD_TOKEN != ''
+        run: |
+          mkdir -p .tgcloud
+          npx tgcloud webhook sync
       # On failure: the modules the server returned as `false` instead of source
       # (what made the CLI's snapshot write crash). Names only, not contents.
       - name: Diagnose
