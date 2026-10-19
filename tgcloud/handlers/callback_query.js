@@ -1,6 +1,8 @@
 // handlers/callback_query.js — an inline button was pressed:
 //   ch:<status>:<chat_id>  the owner activates / rejects a channel (my_chat_member notice)
 //   menu:… / buy:…         the /start menu (lib/menu.js)
+//   g:…                    a listener's buttons in the bot (lib/listener.js)
+//   wk:…                   publish the weekly top songs (lib/weekly.js)
 //   anything else          a ❤️ / 🥀 button under a channel post
 
 import { api } from 'sdk';
@@ -10,6 +12,8 @@ import { isActive, setStatus, getChannel } from '../lib/channels.js';
 import { applyCredits } from '../lib/billing.js';
 import { handleMenuCallback } from '../lib/menu.js';
 import { trackVote } from '../lib/botUsers.js';
+import { handleListenerCallback } from '../lib/listener.js';
+import { handleWeeklyCallback } from '../lib/weekly.js';
 
 async function channelAction(query, status, chatId) {
   if (query.from.id !== ADMIN_ID) {
@@ -31,6 +35,8 @@ export default async function (query, ctx) {
   const action = /^ch:(active|paused):(-?\d+)$/.exec(query.data ?? '');
   if (action) return channelAction(query, action[1], action[2]);
   if (await handleMenuCallback(query)) return;
+  if (await handleListenerCallback(query)) return;
+  if (await handleWeeklyCallback(query)) return;
 
   const post = query.message;
   if (!post) return; // button on an inline-mode message: no channel post behind it
@@ -53,6 +59,7 @@ export default async function (query, ctx) {
 
   await trackVote(query.from);
 
-  await api.answerCallbackQuery({ callback_query_id: query.id, text: 'نظرت ثبت شد 🛌', show_alert: true });
+  // A short toast, not a popup the listener has to close after every vote.
+  await api.answerCallbackQuery({ callback_query_id: query.id, text: 'نظرت ثبت شد 🛌' });
   await refreshButtons(post.chat.id, post.message_id);
 }

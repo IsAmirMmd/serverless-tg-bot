@@ -1,6 +1,7 @@
 import { db, api } from 'sdk';
 import { asc, sql } from 'sdk/db';
 import { likes } from '../schema.js';
+import { growthRow } from './postButtons.js';
 
 const COLUMNS = ['user_id', 'liked', 'music_id', 'user_name', 'channel_id', 'music_name'];
 const CHUNK = 50;
@@ -49,23 +50,25 @@ export async function countLikes(channelId, musicId) {
   return { liked: Number(row?.liked ?? 0), disliked: Number(row?.disliked ?? 0) };
 }
 
-export function likeKeyboard(liked = 0, disliked = 0) {
-  return {
-    inline_keyboard: [[
-      { text: `❤️ (${liked})`, callback_data: '0_liked' },
-      { text: `🥀 (${disliked})`, callback_data: '0_disliked' },
-    ]],
-  };
+// The ❤️ / 🥀 row, plus `extraRow` (the growth buttons) when given.
+export function likeKeyboard(liked = 0, disliked = 0, extraRow = null) {
+  const rows = [[
+    { text: `❤️ (${liked})`, callback_data: '0_liked' },
+    { text: `🥀 (${disliked})`, callback_data: '0_disliked' },
+  ]];
+  if (extraRow) rows.push(extraRow);
+  return { inline_keyboard: rows };
 }
 
-// Redraws the buttons under a channel post with the current counts.
+// Redraws the buttons under a channel post with the current counts. Posts
+// from before the growth buttons get them on their next redraw.
 export async function refreshButtons(chatId, musicId) {
   const { liked, disliked } = await countLikes(chatId, musicId);
   try {
     await api.editMessageReplyMarkup({
       chat_id: chatId,
       message_id: musicId,
-      reply_markup: likeKeyboard(liked, disliked),
+      reply_markup: likeKeyboard(liked, disliked, await growthRow(chatId, musicId)),
     });
   } catch (e) {
     // Same counts as already shown, e.g. a user pressing the same button twice.

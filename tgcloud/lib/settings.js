@@ -7,6 +7,10 @@ export async function getSetting(key) {
   return row?.value ?? null;
 }
 
+export async function deleteSetting(key) {
+  await db.delete(settings).where(eq(settings.key, key)).run();
+}
+
 export async function setSetting(key, value) {
   await db.insert(settings)
     .values({ key, value })

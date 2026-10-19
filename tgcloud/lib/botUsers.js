@@ -7,7 +7,8 @@ import { ADMIN_ID } from './config.js';
 import { pageParams, searchCondition, whereOf, orderBy } from './dashboard.js';
 
 // Records a /start: a new row the first time, then refreshes the name and
-// bumps the counter. Never throws — tracking must not break /start.
+// bumps the counter. Starting again also undoes /stop and a past block.
+// Never throws — tracking must not break /start.
 export async function trackStart(message) {
   const u = message.from;
   if (!u || u.is_bot) return;
@@ -23,7 +24,11 @@ export async function trackStart(message) {
         last_name = excluded.last_name,
         language_code = excluded.language_code,
         is_premium = excluded.is_premium,
+        -- a voter's row exists before their first /start: that start's payload is still the first one
+        start_param = CASE WHEN bot_users.start_count = 0 THEN excluded.start_param ELSE bot_users.start_param END,
         start_count = bot_users.start_count + 1,
+        unsubscribed = 0,
+        blocked = 0,
         last_seen_at = unixepoch()`);
   } catch (e) {
     console.error(e);

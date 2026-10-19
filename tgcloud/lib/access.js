@@ -3,7 +3,7 @@
 
 import { EndpointError } from 'sdk';
 import { ADMIN_ID } from './config.js';
-import { memberChannelIds } from './channels.js';
+import { memberChannelIds, getChannel, isManager } from './channels.js';
 
 export const callerId = (ctx) => ctx.initData?.user?.id;
 export const isOwner = (ctx) => callerId(ctx) === ADMIN_ID;
@@ -25,4 +25,23 @@ export async function channelScope(ctx, channelId) {
   if (requested === 'all') return allowed;
   if (!allowed.includes(requested)) throw forbidden();
   return [requested];
+}
+
+// One channel the caller may read (owner, manager or viewer) — for the growth
+// tab, which works on a single channel. 'all' is refused with NEED_CHANNEL.
+export async function readableChannel(ctx, channelId) {
+  if (channelId == null || channelId === '' || channelId === 'all') {
+    throw new EndpointError('یک کانال را انتخاب کنید', { code: 'NEED_CHANNEL' });
+  }
+  const [id] = await channelScope(ctx, channelId);
+  const channel = await getChannel(id);
+  if (!channel) throw new EndpointError('کانال پیدا نشد', { code: 'NOT_FOUND' });
+  return channel;
+}
+
+// The same, for changes: the owner or one of the channel's managers (viewers only read).
+export async function managedChannel(ctx, channelId) {
+  const channel = await readableChannel(ctx, channelId);
+  if (!(await isManager(callerId(ctx), channel))) throw forbidden('این کار فقط از مدیر کانال برمی‌آید');
+  return channel;
 }

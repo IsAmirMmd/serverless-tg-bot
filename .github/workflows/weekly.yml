@@ -1,0 +1,35 @@
+# Weekly report: every live channel's managers get the past week's numbers
+# (members, real votes, engagement, best posting hour, top songs, inviters,
+# requests) and a "top songs of the week" post they can publish with one
+# button; the owner gets one line per channel.
+# Telegram Serverless has no scheduler, so GitHub Actions runs /weekly in the cloud.
+# Needs the repository secret TGCLOUD_TOKEN (BotFather → your bot → Serverless →
+# CLI Access → Access token).
+name: Weekly report
+
+on:
+  schedule:
+    - cron: '30 5 * * 6'   # Saturday 09:00 Tehran
+  workflow_dispatch: {}
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    env:
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.TGCLOUD_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.TGCLOUD_TOKEN != ''
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: env.TGCLOUD_TOKEN != ''
+      # `run` executes the local modules in the cloud, against the bot's real
+      # database and Bot API. The ids are ADMIN_ID from tgcloud/lib/config.js.
+      - if: env.TGCLOUD_TOKEN != ''
+        run: |
+          mkdir -p .tgcloud
+          npx tgcloud run handlers/message '{ text: "/weekly", from: { id: 199419831 }, chat: { id: 199419831 } }'

@@ -50,6 +50,7 @@ export async function setCommands() {
       { command: 'panel', description: 'پنل آمار' },
       { command: 'report', description: 'گزارش اکسل' },
       { command: 'backup', description: 'بکاپ CSV' },
+      { command: 'weekly', description: 'گزارش هفتگی کانال‌ها' },
     ],
   });
   await tell('Commands updated ✅');

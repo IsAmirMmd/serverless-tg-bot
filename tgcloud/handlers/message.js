@@ -1,6 +1,7 @@
 // handlers/message.js — runs on each `message` update (private chats, groups).
-// Payments, /start (menu, invite links), /panel for channel members and the
-// owner's admin commands; anything else is ignored.
+// Payments, /start (menu, invite links, listener links from channel posts),
+// /panel for channel members, /stop, song requests and the owner's admin
+// commands; anything else is ignored.
 
 import { api } from 'sdk';
 import { ADMIN_ID } from '../lib/config.js';
@@ -13,6 +14,9 @@ import {
   sendReports, sendBackup, parseFakeCommand, addFakeLikes, importLikes, setApiKey, sendPanel, setCommands,
 } from '../lib/admin.js';
 import { redeemInvite, isMember, notify, panelKeyboard } from '../lib/channels.js';
+import { handleListenerStart, takeSongRequest } from '../lib/listener.js';
+import { unsubscribe } from '../lib/broadcast.js';
+import { weeklyReports } from '../lib/weekly.js';
 
 // The admin command in `text`, started; or null when it is not one.
 function adminCommand(message, text) {
@@ -22,6 +26,8 @@ function adminCommand(message, text) {
   if (text === '/setcommands') return setCommands();
   // Renewal reminders and expiry notices — run daily by .github/workflows/billing.yml.
   if (text === '/billing') return billingCheck();
+  // Weekly report to every channel's managers — run by .github/workflows/weekly.yml.
+  if (text === '/weekly') return weeklyReports();
   // The file itself, or a forwarded file this message replies to; optional channel id.
   const imp = /^\/import(?:\s+(-?\d+))?$/.exec(text);
   if (imp) return importLikes(message.document ?? message.reply_to_message?.document, imp[1] ?? null);
@@ -81,6 +87,10 @@ export default async function (message, ctx) {
   if (invite && message.chat.type === 'private') return acceptInvite(message, invite[1]);
   const gift = /^\/start\s+gift_([A-Za-z0-9]+)$/.exec(text);
   if (gift && message.chat.type === 'private') return acceptGift(message, gift[1]);
+  // From the buttons under channel posts: "my songs" and a shared song.
+  const listener = /^\/start\s+(\S+)$/.exec(text);
+  if (listener && message.chat.type === 'private' && (await handleListenerStart(message, listener[1]))) return;
+  if (text === '/stop' && message.chat.type === 'private') return unsubscribe(message);
 
   if (fromId === ADMIN_ID) {
     const command = adminCommand(message, text);
@@ -103,6 +113,9 @@ export default async function (message, ctx) {
   if (/^\/start(\s|$)/.test(text) && message.chat.type === 'private') {
     return sendWelcome(message, { withPanel: hasPanel });
   }
+
+  // The answer to "request a song", if the bot is waiting for one.
+  if (await takeSongRequest(message)) return;
 
   // Anything else (unknown commands, admin commands from other users, free
   // text) gets no reply, and the owner is not notified.
