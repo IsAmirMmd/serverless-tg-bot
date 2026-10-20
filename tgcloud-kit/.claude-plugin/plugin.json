@@ -1,0 +1,8 @@
+{
+  "name": "tgcloud-kit",
+  "description": "Build Telegram bots and Mini Apps on Telegram Serverless (tgcloud): a scaffold with a production architecture, offline tests, CI deploy and scheduled jobs, endpoint and Mini App guides, the Mirza design system, and growth building blocks (multi-channel, Stars payments, attribution, broadcasts, reports).",
+  "author": { "name": "IsAmirMmd" },
+  "homepage": "https://github.com/IsAmirMmd/serverless-tg-bot/tree/main/tgcloud-kit",
+  "repository": "https://github.com/IsAmirMmd/serverless-tg-bot",
+  "keywords": ["telegram", "bot", "serverless", "tgcloud", "mini-app", "persian"]
+}

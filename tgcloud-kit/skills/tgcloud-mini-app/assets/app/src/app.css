@@ -1,0 +1,32 @@
+/* App-specific layout on top of the Mirza design system (styles/mirza.css).
+   Only layout here — colors, borders and shadows come from the --mz-* tokens. */
+
+/* In fullscreen Telegram draws its close/menu buttons over the page: keep
+   content below them (safe area = notch, content safe area = Telegram's UI).
+   The variables are set by telegram-web-app.js and are 0 outside fullscreen. */
+#root > .mz-container {
+  padding-top: calc(var(--mz-s4) + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--mz-s4) + var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+}
+
+.app-header { justify-content: space-between; align-items: flex-start; }
+.app-hello { margin: 0; font-size: var(--mz-fs-sm); }
+
+.cell-user { display: flex; flex-direction: column; line-height: 1.5; }
+.cell-user small { color: var(--mz-muted); font-size: var(--mz-fs-xs); }
+
+.mz-skeleton-row td { padding-block: 16px; }
+.stat-skeleton { height: 28px; margin-block: 6px; }
+.page-size { width: auto; }
+
+/* ---------- phones ---------- */
+@media (max-width: 640px) {
+  #root > .mz-container {
+    padding-top: calc(var(--mz-s3) + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--mz-s5) + var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+  }
+  .mz-stack { gap: var(--mz-s3); }
+  /* Cards (DataTable on phones): values sit at the end of the row. */
+  .mz-table--cards .cell-user { align-items: flex-end; }
+  .page-size { width: 100%; }
+}

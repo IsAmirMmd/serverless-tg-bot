@@ -88,7 +88,9 @@ owner and the channel memberships before returning data.
 ├─ .github/workflows/        ← deploy on push, scheduled backup and billing check
 ├─ docs/                     ← SDK reference and design notes (not deployed)
 ├─ AGENTS.md                 ← platform rules, for humans and AI assistants
-└─ tgcloud.jsonc             ← project config (Mini App build folder)
+├─ tgcloud.jsonc             ← project config (Mini App build folder)
+├─ tgcloud-kit/              ← the reusable kit: skills, architecture, scaffold (not deployed)
+└─ .claude-plugin/           ← makes this repo a Claude Code plugin marketplace
 ```
 
 ## Getting started
@@ -158,6 +160,25 @@ Add the CLI token as the repository secret **`TGCLOUD_TOKEN`**
 `main` is the source of truth. A deploy removes code that exists only in the cloud.
 Schema changes that drop data are never applied automatically; run `npm run update`
 for those.
+
+## Reuse it: tgcloud-kit
+
+Everything this bot was built with is packaged in [tgcloud-kit/](tgcloud-kit/):
+- the skills;
+- the architecture;
+- a tested scaffold;
+- the growth patterns.
+
+It is packaged as a Claude Code plugin, so a new project starts from the same
+structure. Install it once:
+
+```
+/plugin install tgcloud-kit --marketplace IsAmirMmd/serverless-tg-bot
+```
+
+(or `/plugin marketplace add IsAmirMmd/serverless-tg-bot` then `/plugin install tgcloud-kit@serverless-tg-bot`).
+Then, in an empty folder: `/tgcloud-kit:tgcloud-bot <admin id> <what the bot does>`.
+Details, in Persian and English: [tgcloud-kit/README.md](tgcloud-kit/README.md).
 
 ## Tech stack
 
