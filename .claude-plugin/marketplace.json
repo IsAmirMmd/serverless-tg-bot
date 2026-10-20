@@ -1,0 +1,14 @@
+{
+  "name": "serverless-tg-bot",
+  "owner": { "name": "IsAmirMmd" },
+  "description": "Claude Code plugins for building Telegram bots on Telegram Serverless (tgcloud).",
+  "plugins": [
+    {
+      "name": "tgcloud-kit",
+      "source": "./tgcloud-kit",
+      "description": "Scaffold and grow tgcloud Telegram bots and Mini Apps with a proven architecture.",
+      "category": "development",
+      "tags": ["telegram", "serverless", "tgcloud", "mini-app"]
+    }
+  ]
+}
