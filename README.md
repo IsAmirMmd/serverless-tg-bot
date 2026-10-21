@@ -12,7 +12,9 @@ to other channel owners with **Telegram Stars** subscriptions.
   tidy title and performer (links, @usernames, site names and tags like
   `(Official Audio)` or `320kbps` are stripped), a short caption, and
   **❤️ / 🥀 vote buttons**. The original post is removed. Cleanup is rule-based by
-  default, and an optional LLM mode (OpenRouter) is available.
+  default, and an optional LLM mode (OpenRouter) is available. A track forwarded
+  from a known music bot (e.g. @SoundCoudMusicBot; the list is `SOURCE_BOTS` in
+  `tgcloud/lib/config.js`) gets a «📥 فوروارد از @…» line in its caption.
 - **Live vote counts:** every vote is stored and the counts on the buttons update
   instantly. Each user gets one vote per post.
 - **Mini App panel:** opens fullscreen inside Telegram and follows its light/dark

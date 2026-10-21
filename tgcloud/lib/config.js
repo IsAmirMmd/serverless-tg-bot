@@ -38,5 +38,13 @@ export const LLM_MODEL = 'deepseek/deepseek-chat';
 // Timezone for captions and file names, as a fixed UTC offset (Iran: +03:30, no DST).
 export const UTC_OFFSET_MINUTES = 210;
 
+// Bots whose tracks get a "📥 فوروارد از @…" line in the reposted caption when
+// the channel post was forwarded from them (or sent through their inline
+// mode). Matched by id — a username can change; it is only shown, and only when
+// Telegram doesn't send the current one.
+export const SOURCE_BOTS = [
+  { id: 8916613120, username: 'SoundCoudMusicBot' },
+];
+
 // Upper bound for the "liked <music_id> <count>" admin command.
 export const MAX_FAKE_LIKES = 5000;
