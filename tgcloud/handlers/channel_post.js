@@ -1,12 +1,13 @@
 // handlers/channel_post.js — a new post in a channel the bot administers.
 // An audio post is reposted with a cleaned-up caption and like/dislike
-// buttons, and the original is deleted.
+// buttons, and the original is deleted. A track forwarded from one of
+// SOURCE_BOTS (lib/config.js) says so in the caption.
 
 import { api } from 'sdk';
 import { ADMIN_ID, SIGNATURE, USE_LLM } from '../lib/config.js';
 import { cleanMetadata } from '../lib/llm.js';
 import { basicMetadata } from '../lib/metadata.js';
-import { buildCaption } from '../lib/caption.js';
+import { buildCaption, sourceBot } from '../lib/caption.js';
 import { likeKeyboard, refreshButtons } from '../lib/likes.js';
 import { getChannel, saveChannel, isLive } from '../lib/channels.js';
 import { recordPost } from '../lib/growth.js';
@@ -45,7 +46,7 @@ export default async function (post, ctx) {
   const sent = await api.sendAudio({
     chat_id: post.chat.id,
     audio: audio.file_id,
-    caption: buildCaption(meta, audio.duration),
+    caption: buildCaption(meta, audio.duration, { source: sourceBot(post) }),
     parse_mode: 'MarkdownV2',
     reply_markup: likeKeyboard(),
   });
