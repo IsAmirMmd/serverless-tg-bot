@@ -156,7 +156,7 @@ Add the CLI token as the repository secret **`TGCLOUD_TOKEN`**
 
 | Workflow | When | What |
 |---|---|---|
-| `deploy.yml` | every push to `main` that touches the bot or the Mini App | builds and deploys, applies safe schema changes |
+| `deploy.yml` | every push to `main` that touches the bot or the Mini App | builds and deploys, applies safe schema changes, then verifies the cloud runs exactly what is on `main` |
 | `backup.yml` | every 8 hours | sends a CSV backup of all tables to the owner |
 | `billing.yml` | daily | renewal reminders and expiry notices |
 | `weekly.yml` | Saturdays, 09:00 Tehran | weekly report and "top songs" draft to each channel's managers |

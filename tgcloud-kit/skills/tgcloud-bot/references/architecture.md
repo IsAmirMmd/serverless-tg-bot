@@ -243,12 +243,17 @@ cloud is right. Check against the real DB and Bot API without deploying, using
 1. `npm ci`
 2. `npm run build --if-present` (the Mini App)
 3. `tgcloud fetch` and `tgcloud push` (`fetch` first, because a fresh checkout
-   has no snapshot)
+   has no snapshot). Push's exit code is not the verdict: CLI 0.2.0 can crash
+   after the server has already accepted the deploy.
 4. `tgcloud migrate --safe`, as its **own `always()` step**. A push can deploy
    the code and then fail while writing the CLI's local snapshot, and the
    schema must not stay behind the code.
 5. `tgcloud webhook sync`, `always()`. The update types the bot receives
    come from `handlers/`, and a half-failed push may not have refreshed them.
+6. **Verify**, the real verdict. It runs a fresh `tgcloud fetch`, then
+   `tgcloud status` (with `FORCE_COLOR=0`). Any line under "Modified", "New",
+   "Not yet deployed" or "Deleted" means the cloud doesn't run what is on main,
+   and the job fails.
 
 Setup, once:
 - In BotFather, open the bot, then **Serverless → CLI Access → Access token**.
@@ -295,8 +300,13 @@ schema, lib code and the lessons learned in production:
   load time. Split the shared helpers into a third module.
 - **Channel ids exported to CSV** came back in scientific notation. Store them
   as TEXT and validate them on import.
-- **The CLI can crash after a successful push**, so migrate and webhook sync
-  run as separate `always()` steps.
+- **The CLI can crash after a successful push.** It writes its local snapshot,
+  and the server's response returns a module as `false`. So:
+  - migrate and webhook sync run as separate `always()` steps;
+  - push's exit code is ignored;
+  - a Verify step compares a fresh fetch with the checkout.
+
+  Without that, every such deploy showed red while the bot was up to date.
 - **Telegram doesn't show new `/` commands** until `setMyCommands` runs again.
 - **Invite links need the bot's "Add subscribers" admin right.**
   `chat_member` updates need the bot to be an admin and `chat_member` in the
