@@ -38,12 +38,20 @@ export const LLM_MODEL = 'deepseek/deepseek-chat';
 // Timezone for captions and file names, as a fixed UTC offset (Iran: +03:30, no DST).
 export const UTC_OFFSET_MINUTES = 210;
 
-// Bots whose tracks get a "📥 فوروارد از @…" line in the reposted caption when
-// the channel post was forwarded from them (or sent through their inline
-// mode). Matched by id — a username can change; it is only shown, and only when
-// Telegram doesn't send the current one.
+// Music bots whose tracks get a source line at the end of the reposted caption
+// when the channel post was forwarded from them (or sent through their inline
+// mode):  <bot name, linked to the bot> • <linkLabel, linked to the original song>
+// The song link is taken from the forwarded message (its caption links or url
+// buttons) — the first one on one of `linkHosts`; without one, only the bot
+// name is shown. Matched by id: a username can change, and the current one
+// from the update wins over the one written here.
 export const SOURCE_BOTS = [
-  { id: 8916613120, username: 'SoundCoudMusicBot' },
+  {
+    id: 8916613120,
+    username: 'SoundCoudMusicBot',
+    linkLabel: 'Sound Cloud',
+    linkHosts: ['soundcloud.com', 'soundcloud.app.goo.gl'],
+  },
 ];
 
 // Upper bound for the "liked <music_id> <count>" admin command.
