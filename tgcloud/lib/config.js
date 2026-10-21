@@ -40,7 +40,7 @@ export const UTC_OFFSET_MINUTES = 210;
 
 // Music bots whose tracks get a source line at the end of the reposted caption
 // when the channel post was forwarded from them (or sent through their inline
-// mode):  <name, linked to the bot> • <linkLabel, linked to the original song>
+// mode):  <emoji> [<name, linked to the bot>] • [<linkLabel, linked to the original song>]
 // The song link is taken from the forwarded message (its caption links or url
 // buttons) — the first one on one of `linkHosts`; without one, only the bot
 // name is shown. Matched by id: a username can change, and the current one
@@ -50,6 +50,7 @@ export const SOURCE_BOTS = [
     id: 8916613120,
     username: 'SoundCoudMusicBot',
     name: 'ساندگیر',            // shown instead of the bot's own (long) name
+    emoji: '🎧',
     linkLabel: 'Sound Cloud',
     linkHosts: ['soundcloud.com', 'soundcloud.app.goo.gl'],
   },

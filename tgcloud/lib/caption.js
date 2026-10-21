@@ -43,7 +43,7 @@ function linkOn(links, hosts) {
 }
 
 // The bot in SOURCE_BOTS a channel post came from — forwarded from its chat, or
-// sent through its inline mode (via_bot) — as { name, username, label, link }
+// sent through its inline mode (via_bot) — as { emoji, name, username, label, link }
 // (link: the original song, or null); null when it came from anywhere else.
 export function sourceBot(post) {
   const origin = post.forward_origin;
@@ -53,6 +53,7 @@ export function sourceBot(post) {
     if (!bot) continue;
     const username = user.username || bot.username;
     return {
+      emoji: bot.emoji || '🎧',
       name: bot.name || user.first_name || username,
       username,
       label: bot.linkLabel,
@@ -62,17 +63,22 @@ export function sourceBot(post) {
   return null;
 }
 
-// "[ساندگیر](t.me/bot) • [Sound Cloud](song)" in MarkdownV2.
+// "🎧 [ساندگیر] • [Sound Cloud]" in MarkdownV2 — bracketed like the other caption
+// lines; the names inside are links (to the bot, to the song). Not monospace:
+// Telegram doesn't allow code inside a link. Starts with a left-to-right mark:
+// a line's direction follows its first letter, and «ساندگیر» would otherwise
+// turn just this line right-to-left, right-aligned under the others.
 function sourceLine(source) {
-  const bot = `[${escapeText(source.name)}](https://t.me/${escapeUrl(source.username)})`;
-  return source.link ? `${bot} • [${escapeText(source.label)}](${escapeUrl(source.link)})` : bot;
+  const linked = (text, url) => `\\[[${escapeText(text)}](${escapeUrl(url)})\\]`;
+  const bot = linked(source.name, `https://t.me/${source.username}`);
+  return `\u200E${escapeText(source.emoji)} ${bot}` + (source.link ? ` • ${linked(source.label, source.link)}` : '');
 }
 
 // Caption of a reposted track (parse_mode MarkdownV2):
 //   🌊 [`Title`]
 //   🎤 [`Performer`]
 //   🕯 [03:45] | 🌇  19:30
-//   ساندگیر • Sound Cloud             ← only for a track from one of SOURCE_BOTS (both linked)
+//   🎧 [ساندگیر] • [Sound Cloud]      ← only for a track from one of SOURCE_BOTS (both names linked)
 export function buildCaption({ title, performer, emoji }, duration = 0, { now = new Date(), source = null } = {}) {
   const { hour, minute } = localTime(now);
   const seconds = duration || 0;

@@ -14,7 +14,7 @@ to other channel owners with **Telegram Stars** subscriptions.
   **❤️ / 🥀 vote buttons**. The original post is removed. Cleanup is rule-based by
   default, and an optional LLM mode (OpenRouter) is available. A track forwarded
   from a known music bot (e.g. @SoundCoudMusicBot; the list is `SOURCE_BOTS` in
-  `tgcloud/lib/config.js`) gets a last caption line «ساندگیر • Sound Cloud»: the
+  `tgcloud/lib/config.js`) gets a last caption line «🎧 [ساندگیر] • [Sound Cloud]»: the
   name (set per bot) links to the bot, "Sound Cloud" to the original song (taken
   from the forwarded message's links).
 - **Live vote counts:** every vote is stored and the counts on the buttons update
