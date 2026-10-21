@@ -68,7 +68,7 @@ export async function refreshButtons(chatId, musicId) {
     await api.editMessageReplyMarkup({
       chat_id: chatId,
       message_id: musicId,
-      reply_markup: likeKeyboard(liked, disliked, await growthRow(chatId, musicId)),
+      reply_markup: likeKeyboard(liked, disliked, await growthRow(chatId)),
     });
   } catch (e) {
     // Same counts as already shown, e.g. a user pressing the same button twice.

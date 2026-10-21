@@ -46,7 +46,7 @@ export default async function (post, ctx) {
   const sent = await api.sendAudio({
     chat_id: post.chat.id,
     audio: audio.file_id,
-    caption: buildCaption(meta, audio.duration, { source: sourceBot(post) }),
+    caption: buildCaption(meta, { source: sourceBot(post) }),
     parse_mode: 'MarkdownV2',
     reply_markup: likeKeyboard(),
   });

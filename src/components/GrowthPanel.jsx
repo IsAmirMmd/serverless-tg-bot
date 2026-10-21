@@ -173,7 +173,7 @@ function ReferrersCard({ rows }) {
         ? <ol className="growth-list">{rows.map((r) => (
           <li key={r.user_id}><b><bdi>{r.username ? `@${r.username}` : r.first_name ?? r.user_id}</bdi></b> — {fa(r.stayed)} عضو ماندگار ({fa(r.joins)} ورود)</li>
         ))}</ol>
-        : <p className="mz-muted section-hint">شنونده‌ها از دکمه «🎧 آهنگ‌های من» زیر پست‌ها لینک دعوت اختصاصی می‌گیرند؛ هر کس با لینکشان عضو شود اینجا حساب می‌شود.</p>}
+        : <p className="mz-muted section-hint">شنونده‌ها از دکمه «🎧 آهنگ‌هایی که لایک کردم» زیر پست‌ها لینک دعوت اختصاصی می‌گیرند؛ هر کس با لینکشان عضو شود اینجا حساب می‌شود.</p>}
     </section>
   );
 }
@@ -297,7 +297,7 @@ function SettingsCard({ channelId, on, onChange }) {
     <section className="mz-card mz-stack">
       <h2 className="mz-subtitle">دکمه‌های زیر پست</h2>
       <p className="mz-muted section-hint">
-        ردیف «🎧 آهنگ‌های من» و «📤 بفرست برای دوستت» زیر دکمه‌های لایک. شنونده‌ها از آن‌جا آهنگ‌های لایک‌شده‌شان، پیشنهاد آهنگ،
+        دکمه «🎧 آهنگ‌هایی که لایک کردم» زیر دکمه‌های لایک. شنونده‌ها از آن‌جا آهنگ‌های لایک‌شده‌شان، پیشنهاد آهنگ،
         لینک دعوت اختصاصی و درخواست آهنگ را در ربات می‌گیرند. تغییر روی پست‌های قدیمی با اولین رأی بعدی اعمال می‌شود.
       </p>
       <div className="mz-row">

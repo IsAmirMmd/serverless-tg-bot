@@ -10,7 +10,7 @@ to other channel owners with **Telegram Stars** subscriptions.
 
 - **Clean reposts:** when a track is posted to a channel, the bot reposts it with a
   tidy title and performer (links, @usernames, site names and tags like
-  `(Official Audio)` or `320kbps` are stripped), a short caption, and
+  `(Official Audio)` or `320kbps` are stripped) in a two-line caption, and
   **❤️ / 🥀 vote buttons**. The original post is removed. Cleanup is rule-based by
   default, and an optional LLM mode (OpenRouter) is available. A track forwarded
   from a known music bot (e.g. @SoundCoudMusicBot; the list is `SOURCE_BOTS` in
@@ -49,11 +49,11 @@ to other channel owners with **Telegram Stars** subscriptions.
   - **weekly report** every Saturday to each channel's managers, with a ready
     "top songs of the week" post they publish with one button
   - **polls** in the channel and **song requests** from listeners
-- **Listener features in the bot:** a second row under each post — **🎧 my songs**
-  (their liked songs plus "you might also like", from what similar listeners liked,
-  always within that channel) and **📤 send to a friend** (opens the song in the
-  bot with a join button). Listeners get a **personal invite link** with a
-  leaderboard, and can **request a song**. Managers can turn the row off.
+- **Listener features in the bot:** a second row under each post with one button,
+  **🎧 آهنگ‌هایی که لایک کردم**. It opens the listener's liked songs plus "you might
+  also like", based on what similar listeners liked, always within that channel.
+  Listeners also get a **personal invite link** with a leaderboard, and can
+  **request a song**. Managers can turn the row off.
 - **Messages to users** (owner): to a segment of people who started the bot (by
   channel, activity, or an artist they liked), sent in batches, with `/stop` to opt out.
 - **Friendly start menu:** colored buttons for support, a how-to guide and pricing.

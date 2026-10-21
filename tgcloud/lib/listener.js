@@ -11,7 +11,7 @@ import { api, db, BotApiError } from 'sdk';
 import { sql } from 'sdk/db';
 import { getChannel, isLive, postBase } from './channels.js';
 import { DAY, now, isReal, songName, ensureLink, topReferrers } from './growth.js';
-import { chatIdOf, shortId, shareUrl } from './postButtons.js';
+import { chatIdOf, shortId, shareUrl, MINE_TEXT } from './postButtons.js';
 import { esc, link, fa, clip, userLabel } from './html.js';
 
 const LIST_MAX = 25;
@@ -49,7 +49,7 @@ function listenerButtons(channel, entryUrl, { mine = false } = {}) {
     { text: '🎁 دوستاتو دعوت کن', callback_data: `g:ref:${s}`, style: 'success' },
     { text: '🎶 درخواست آهنگ', callback_data: `g:req:${s}`, style: 'primary' },
   ]);
-  if (mine) rows.push([{ text: '🎧 آهنگ‌های من', callback_data: `g:mine:${s}` }]);
+  if (mine) rows.push([{ text: MINE_TEXT, callback_data: `g:mine:${s}` }]);
   return { inline_keyboard: rows };
 }
 
@@ -180,7 +180,7 @@ async function sendReferral(chatId, user, channel) {
   }
   return say(chatId, out.join('\n'), { reply_markup: { inline_keyboard: [
     [{ text: '📤 بفرست برای دوستات', url: shareUrl(ref.url, `🎧 بیا عضو «${channel.title ?? 'این کانال'}» شو`), style: 'success' }],
-    [{ text: '🎧 آهنگ‌های من', callback_data: `g:mine:${shortId(channel.chat_id)}` }],
+    [{ text: MINE_TEXT, callback_data: `g:mine:${shortId(channel.chat_id)}` }],
   ] } });
 }
 
@@ -218,7 +218,7 @@ export async function takeSongRequest(message) {
     INSERT INTO song_requests (channel_id, user_id, user_name, text)
     VALUES (${channel.chat_id}, ${message.from.id}, ${message.from.username ?? message.from.first_name ?? null}, ${text.slice(0, 200)})`);
   await say(message.chat.id, `✅ درخواستت برای «${esc(channel.title ?? 'کانال')}» ثبت شد. ممنون! 🙏`, {
-    reply_markup: { inline_keyboard: [[{ text: '🎧 آهنگ‌های من', callback_data: `g:mine:${shortId(channel.chat_id)}` }]] },
+    reply_markup: { inline_keyboard: [[{ text: MINE_TEXT, callback_data: `g:mine:${shortId(channel.chat_id)}` }]] },
   });
   return true;
 }
