@@ -53,7 +53,7 @@ export function sourceBot(post) {
     if (!bot) continue;
     const username = user.username || bot.username;
     return {
-      name: user.first_name || username,
+      name: bot.name || user.first_name || username,
       username,
       label: bot.linkLabel,
       link: bot.linkLabel ? linkOn(linksOf(post), bot.linkHosts ?? []) : null,
@@ -62,7 +62,7 @@ export function sourceBot(post) {
   return null;
 }
 
-// "[Bot name](t.me/bot) • [Sound Cloud](song)" in MarkdownV2.
+// "[ساندگیر](t.me/bot) • [Sound Cloud](song)" in MarkdownV2.
 function sourceLine(source) {
   const bot = `[${escapeText(source.name)}](https://t.me/${escapeUrl(source.username)})`;
   return source.link ? `${bot} • [${escapeText(source.label)}](${escapeUrl(source.link)})` : bot;
@@ -72,7 +72,7 @@ function sourceLine(source) {
 //   🌊 [`Title`]
 //   🎤 [`Performer`]
 //   🕯 [03:45] | 🌇  19:30
-//   Bot name • Sound Cloud            ← only for a track from one of SOURCE_BOTS (both linked)
+//   ساندگیر • Sound Cloud             ← only for a track from one of SOURCE_BOTS (both linked)
 export function buildCaption({ title, performer, emoji }, duration = 0, { now = new Date(), source = null } = {}) {
   const { hour, minute } = localTime(now);
   const seconds = duration || 0;
