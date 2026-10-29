@@ -1,12 +1,13 @@
-# Backup every 8 hours: Telegram Serverless has no scheduler, so GitHub
-# Actions runs the /backup command in the cloud.
+# Backup on demand (Actions → Likes backup → Run workflow): GitHub Actions runs
+# the /backup command in the cloud. The 8-hour schedule is paused; uncomment
+# `schedule` below to bring it back.
 # Needs the repository secret TGCLOUD_TOKEN (BotFather → your bot → Serverless →
 # CLI Access → Access token).
 name: Likes backup
 
 on:
-  schedule:
-    - cron: '0 */8 * * *'
+  # schedule:
+  #   - cron: '0 */8 * * *'
   workflow_dispatch: {}
 
 jobs:
